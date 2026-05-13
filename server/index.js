@@ -58,16 +58,23 @@ io.on('connection', (socket) => {
       }
     }
   });
+  
+  // index.js (Server)
   socket.on('player-details', ({ roomId, name, classType, emoji }) => {
     if (players[roomId] && players[roomId][socket.id]) {
-        players[roomId][socket.id].name = name;
-        players[roomId][socket.id].classType = classType;
-        players[roomId][socket.id].emoji = emoji;
-        
-        // Broadcast the update so the Desktop Lobby shows the new info
-        io.to(roomId).emit('update-players', players[roomId]);
+      // 1. Update the existing object with the new data from the phone
+      players[roomId][socket.id].name = name;
+      players[roomId][socket.id].classType = classType;
+      players[roomId][socket.id].emoji = emoji;
+
+      console.log(`Updated player ${socket.id} in room ${roomId}:`, players[roomId][socket.id]);
+
+      // 2. Broadcast to everyone (Desktop Lobby & other phones)
+      io.to(roomId).emit('update-players', players[roomId]);
+    } else {
+      console.log("Error: Player tried to send details but wasn't in the players object yet.");
     }
-});
+  });
 });
 
 const PORT = process.env.PORT || 3001;

@@ -101,18 +101,22 @@ const sendMove = (dir) => {
 
   // --- RENDER LOGIC (THE 3 SCREENS) ---
 if (view === 'character-creation') {
+ 
   const handleJoinParty = () => {
     if (!charName || !selectedClass) return;
     
-    // Send character data to server
-    socketRef.current.emit('player-details', {
+    const payload = {
       roomId: ROOM_ID,
       name: charName,
       classType: selectedClass.id,
       emoji: selectedClass.emoji
-    });
+    };
+
+    console.log("Phone sending details:", payload); // Check your phone's console for this!
     
-    setView('mobile'); // Move to the controller
+    socketRef.current.emit('player-details', payload);
+    
+    setView('mobile'); // Switch to controller
   };
 
   return (
