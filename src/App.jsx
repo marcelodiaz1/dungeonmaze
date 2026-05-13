@@ -34,10 +34,8 @@ function App() {
   const socketRef = useRef();
 
   useEffect(() => {
-    // 1. Detect device ONCE
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.location.pathname.includes('/join');
-
-    // 2. Initialize Socket ONCE
+    
     socketRef.current = io(SERVER_URL, { transports: ['websocket'] });
 
     socketRef.current.on('connect', () => {
@@ -52,7 +50,6 @@ function App() {
       if (!isMobile) setView('desktop');
     });
 
-    // Initial View Routing
     setView(isMobile ? 'character-creation' : 'lobby');
 
     return () => socketRef.current.disconnect();
@@ -69,13 +66,12 @@ function App() {
     };
 
     const [targetX, targetY] = rotations[result];
-    // Add 720 for a 2-turn tumble
     setDiceRotation({ x: targetX + 720, y: targetY + 720 });
 
     setTimeout(() => {
       setRollResult(result);
       setIsRolling(false);
-      setDiceRotation({ x: targetX, y: targetY }); // Snap to clean rotation
+      setDiceRotation({ x: targetX, y: targetY }); 
     }, 1000);
   };
 
@@ -153,7 +149,15 @@ function App() {
               </div>
             </div>
           )}
-          {activeTab === 'character' && <div className="tab-placeholder"><h2>{charName}</h2><p>{selectedClass?.id}</p></div>}
+          {activeTab === 'character' && (
+            <div className="tab-placeholder">
+              <div className="hero-stat-card">
+                <span style={{fontSize: '4rem'}}>{selectedClass?.emoji}</span>
+                <h2>{charName}</h2>
+                <p className="gold-text">{selectedClass?.id.toUpperCase()}</p>
+              </div>
+            </div>
+          )}
         </main>
 
         <nav className="mobile-nav">
@@ -175,30 +179,91 @@ function App() {
   }
 
   if (view === 'lobby') {
+    const playerCount = Object.keys(allPlayers).length;
     return (
       <div className="lobby-screen">
+        <div className="fire-embers"></div>
         <div className="glass-container main-glow">
-          <h1 className="game-title">LABYRINTH OF OATHS</h1>
-          <div className="player-cards-container">
-            {Object.entries(allPlayers).map(([id, player]) => (
-              <div key={id} className="char-card active-player shimmer">
-                <div className="char-avatar">{player.emoji}</div>
-                <div className="char-info">
-                   <span className="char-name">{player.name}</span>
-                   <span className="char-status">{player.classType}</span>
-                </div>
+          <header className="lobby-header">
+            <h1 className="game-title floating">LABYRINTH OF OATHS</h1>
+            <p className="game-subtitle">The gate awaits the blood of the brave.</p>
+          </header>
+
+          <section className="steps-grid">
+            <div className="step-card reveal">
+              <div className="step-num">1</div>
+              <h4>Link Soul</h4>
+              <div className="step-visual">
+                <QRCodeSVG value={`${window.location.origin}/join`} size={70} bgColor="transparent" fgColor="#d4af37" />
               </div>
-            ))}
-          </div>
-          <QRCodeSVG value={`${window.location.origin}/join`} />
-          <button className="begin-btn" onClick={() => socketRef.current.emit('start-game', ROOM_ID)}>RELEASE THE OATH</button>
+            </div>
+            <div className="step-card reveal">
+              <div className="step-num">2</div>
+              <h4>Manifest</h4>
+              <div className="step-visual" style={{fontSize: '2rem'}}>🎭</div>
+            </div>
+            <div className="step-card reveal">
+              <div className="step-num">3</div>
+              <h4>Ascend</h4>
+              <div className="step-visual" style={{fontSize: '2rem'}}>⚔️</div>
+            </div>
+          </section>
+
+          <section className="team-section">
+            <h3 className="section-divider"><span>Active Party</span></h3>
+            <div className="player-cards-container">
+              {Object.entries(allPlayers).map(([id, player], index) => (
+                <div key={id} className="char-card active-player shimmer">
+                  <div className="card-inner">
+                    <div className="char-avatar">{player.emoji || '🧙‍♂️'}</div>
+                    <div className="char-info">
+                      <span className="char-name">{player.name || `Seeker ${index + 1}`}</span>
+                      <div className="hp-bar-wrap"><div className="hp-fill"></div></div>
+                      <span className="char-status">{player.classType?.toUpperCase() || "READY"}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {[...Array(Math.max(0, 4 - playerCount))].map((_, i) => (
+                <div key={`empty-${i}`} className="char-card silhouette">
+                  <div className="char-avatar">💀</div>
+                  <p>Waiting for Soul...</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <button className="begin-btn gold-pulse" onClick={() => socketRef.current.emit('start-game', ROOM_ID)} disabled={playerCount === 0}>
+            RELEASE THE OATH
+          </button>
         </div>
       </div>
     );
   }
- // Default Loading state
-  return <div className="loading">Summoning...</div>;
+
+  if (view === 'desktop') {
+    return (
+      <div className="desktop-board">
+        <div className="game-screen">
+          <div className="maze-container">
+            <svg viewBox="0 0 324 324" className="maze-svg-walls">
+              <MazeGeometry />
+            </svg>
+            {Object.entries(allPlayers).map(([id, p]) => (
+              <div key={id} className="player-avatar" style={{ left: `${(p.x / 324) * 100}%`, top: `${(p.y / 324) * 100}%` }}>
+                <div className="player-name-tag">{p.name || "???"}</div>
+                <span className="emoji">{p.emoji || '🧙‍♂️'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
+
 
 const MazeGeometry = () => (
     <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
