@@ -158,6 +158,26 @@ function App() {
               </div>
             </div>
           )}
+          
+        {activeTab === 'inventory' && (
+          <div className="tab-panel fade-in">
+            <h2 className="tab-title">Inventory</h2>
+            <div className="inv-grid">
+              <div className="inv-slot">🗡️</div>
+              <div className="inv-slot">🧪</div>
+              <div className="inv-slot">🕯️</div>
+              <div className="inv-slot empty"></div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'tome' && (
+          <div className="tab-panel fade-in">
+            <h2 className="tab-title">The Tome</h2>
+            <div className="log-entry">You entered the Labyrinth.</div>
+            <div className="log-entry">The air feels cold...</div>
+          </div>
+        )}
         </main>
 
         <nav className="mobile-nav">
