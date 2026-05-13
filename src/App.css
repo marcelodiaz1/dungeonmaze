@@ -267,19 +267,60 @@ body {
 }
 
 
-.d-pad {
+.d-pad-isometric {
   display: grid;
-  grid-template-areas: 
-    ".  up   ."
-    "left down right"; /* Inverted T like a keyboard */
-  gap: 15px;
-  justify-content: center;
+  grid-template-columns: repeat(2, 80px);
+  grid-template-rows: repeat(2, 80px);
+  gap: 12px;
+  margin: 40px auto;
+  
+  /* The Isometric Magic */
+  transform: rotateX(45deg) rotateZ(45deg);
+  transform-style: preserve-3d;
 }
 
-.up    { grid-area: up; }
-.down  { grid-area: down; }
-.left  { grid-area: left; }
-.right { grid-area: right; }
+.dir-btn {
+  width: 80px;
+  height: 80px;
+  background: #222;
+  border: 2px solid var(--gold, #d4af37);
+  color: var(--gold, #d4af37);
+  font-size: 1.5rem;
+  border-radius: 8px;
+  
+  /* Give the buttons some 3D "height" */
+  box-shadow: 
+    -4px 4px 0 #000,
+    -8px 8px 15px rgba(0,0,0,0.5);
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s ease;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* Fix the arrow direction so they point "up" relative to the map, not the rotation */
+.dir-btn span, .dir-btn {
+  /* This undoes the tilt for the text only if needed */
+  /* transform: rotateZ(-45deg); */
+}
+
+.dir-btn:active {
+  transform: translate(-2px, 2px);
+  box-shadow: -1px 1px 0 #000;
+  background: var(--gold, #d4af37);
+  color: #000;
+}
+
+/* Position mapping for the 2x2 */
+.up    { grid-column: 1; grid-row: 1; }
+.right { grid-column: 2; grid-row: 1; }
+.left  { grid-column: 1; grid-row: 2; }
+.down  { grid-column: 2; grid-row: 2; }
+
+
 .dir-btn {
   width: 80px;
   height: 80px;

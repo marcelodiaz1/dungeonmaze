@@ -139,13 +139,12 @@ function App() {
                 </div>
               </div>
 
-              <div>
-                <div className="d-pad">   
+               
+               <div className="d-pad-isometric">
                   <button className="dir-btn up" onClick={() => sendMove('North')}>▲</button>
+                  <button className="dir-btn right" onClick={() => sendMove('East')}>▶</button>
                   <button className="dir-btn left" onClick={() => sendMove('West')}>◀</button>
                   <button className="dir-btn down" onClick={() => sendMove('South')}>▼</button>
-                  <button className="dir-btn right" onClick={() => sendMove('East')}>▶</button>
-                </div>
               </div>
             </div>
           )}
