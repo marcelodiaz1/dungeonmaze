@@ -258,14 +258,17 @@ if (view === 'character-creation') {
         <section className="team-section">
           <h3 className="section-divider"><span>Active Party</span></h3>
           <div className="player-cards-container">
-            {Object.entries(allPlayers).map(([id, player], index) => (
+            {Object.entries(allPlayers).map(([id, player]) => (
               <div key={id} className="char-card active-player shimmer">
                 <div className="card-inner">
+                  {/* Use player.emoji, fallback to wizard if not set yet */}
                   <div className="char-avatar">{player.emoji || '🧙‍♂️'}</div>
                   <div className="char-info">
-                    <span className="char-name">Seeker {index + 1}</span>
+                    {/* Show the chosen name or "Connecting..." if empty */}
+                    <span className="char-name">{player.name || "Manifesting..."}</span>
                     <div className="hp-bar-wrap"><div className="hp-fill"></div></div>
-                    <span className="char-status">READY</span>
+                    {/* Show the class type as the status */}
+                    <span className="char-status">{player.classType ? player.classType.toUpperCase() : "READY"}</span>
                   </div>
                 </div>
               </div>
@@ -295,15 +298,30 @@ if (view === 'character-creation') {
   // SCREEN 3: DESKTOP MAZE (GAME ON)
   if (view === 'desktop') {
     return (
-      <div className="desktop-board">
+     <div className="desktop-board">
         <div className="game-screen">
           <div className="maze-container">
             <svg viewBox="0 0 324 324" className="maze-svg-walls">
               <MazeGeometry />
             </svg>
             {Object.entries(allPlayers).map(([id, p]) => (
-              <div key={id} className="player-avatar" style={{ left: `${(p.x / 324) * 100}%`, top: `${(p.y / 324) * 100}%` }}>
-                <span className="emoji">{p.emoji}</span>
+              <div 
+                key={id} 
+                className="player-avatar" 
+                style={{ 
+                  left: `${(p.x / 324) * 100}%`, 
+                  top: `${(p.y / 324) * 100}%`,
+                  transition: 'left 0.2s ease-out, top 0.2s ease-out' 
+                }}
+              >
+                {/* Floating Name Tag */}
+                <div className="player-name-tag">{p.name || "???"}</div>
+                
+                {/* Class Emoji */}
+                <span className="emoji">{p.emoji || '🧙‍♂️'}</span>
+                
+                {/* Indicator for the local desktop user if applicable */}
+                {id === socketRef.current?.id && <div className="me-indicator">YOU</div>}
               </div>
             ))}
           </div>

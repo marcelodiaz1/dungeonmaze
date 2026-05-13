@@ -630,3 +630,17 @@ body {
 }
 
 .join-btn:disabled { opacity: 0.2; }
+.player-name-tag {
+  position: absolute;
+  top: -45px; /* Positioned above the emoji */
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-family: 'MedievalSharp', cursive;
+  white-space: nowrap;
+  border: 1px solid var(--gold);
+  pointer-events: none;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+}
