@@ -266,15 +266,20 @@ body {
   justify-content: center;
 }
 
+
 .d-pad {
   display: grid;
   grid-template-areas: 
-    ". up ."
-    "left . right"
-    ". down .";
-  gap: 20px;
+    ".  up   ."
+    "left down right"; /* Inverted T like a keyboard */
+  gap: 15px;
+  justify-content: center;
 }
 
+.up    { grid-area: up; }
+.down  { grid-area: down; }
+.left  { grid-area: left; }
+.right { grid-area: right; }
 .dir-btn {
   width: 80px;
   height: 80px;
@@ -293,10 +298,6 @@ body {
   color: #000;
 }
 
-.up { grid-area: up; }
-.down { grid-area: down; }
-.left { grid-area: left; }
-.right { grid-area: right; }
 
 /* Mobile Container Styling */
 /* --- MOBILE LAYOUT --- */
