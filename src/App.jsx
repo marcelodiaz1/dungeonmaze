@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
 import './App.css';
 
-const SERVER_URL = "https://dungeonmaze.vercel.app/"; 
+const SERVER_URL = "https://dungeonmaze.onrender.com"; 
 const ROOM_ID = "dnd-maze-1";
 
 function App() {
