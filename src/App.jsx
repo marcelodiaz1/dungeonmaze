@@ -117,14 +117,14 @@ function App() {
           </svg>
 
           {/* RENDER EVERY PLAYER IN THE MAP */}
-          {Object.entries(allPlayers).map(([id, player]) => (
+         {Object.entries(allPlayers).map(([id, player]) => (
             <div 
               key={id}
               className="player-avatar" 
               style={{ 
-                left: `${player.x}px`, 
-                top: `${player.y}px`,
-                transition: 'all 0.1s ease-out' // Smooth movement
+                // Mapping 324 coordinate system to 100%
+                left: `${(player.x / 324) * 100}%`, 
+                top: `${(player.y / 324) * 100}%` 
               }}
             >
               <span className="emoji">🧙‍♂️</span>
