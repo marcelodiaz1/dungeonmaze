@@ -273,7 +273,10 @@ body {
   grid-template-rows: repeat(2, 80px);
   gap: 12px;
   margin: 40px auto;
-   
+  
+  /* The Isometric Magic */
+  transform: rotateX(45deg) rotateZ(45deg);
+  transform-style: preserve-3d;
 }
 
 .dir-btn {
