@@ -144,3 +144,26 @@ body {
   border-radius: 10px;
   margin-top: 20px;
 }
+
+.me-indicator {
+  position: absolute;
+  top: -20px;
+  background: var(--gold);
+  color: black;
+  font-size: 8px;
+  font-weight: bold;
+  padding: 2px 4px;
+  border-radius: 2px;
+  transform: rotateZ(-45deg) rotateX(-60deg);
+}
+
+/* Ensure the game screen allows the sidebar to sit next to it */
+.game-screen {
+  display: flex;
+  flex-direction: row; /* Align maze and sidebar horizontally */
+  justify-content: space-around;
+}
+
+.dm-log {
+  z-index: 10; /* Ensure it stays above the isometric background */
+}

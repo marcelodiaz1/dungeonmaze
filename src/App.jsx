@@ -49,8 +49,10 @@ function App() {
 
   const sendMove = (dir) => socketRef.current.emit('send-move', { roomId: ROOM_ID, direction: dir });
 
-  // --- VIEW: LOBBY ---
+  // --- VIEW: LOBBY --- 
   if (view === 'lobby') {
+    const playerCount = Object.keys(allPlayers).length;
+
     return (
       <div className="lobby-screen">
         <div className="lobby-container">
@@ -58,21 +60,46 @@ function App() {
             <div className="qr-container">
               <QRCodeSVG value={`${window.location.origin}/join`} size={180} />
             </div>
+            <p className="qr-hint">Scan to Join</p>
           </section>
+
           <main className="lobby-main">
-            <h1 className="title">DUNGEON LOBBY</h1>
-            <div className="avatar-list">
-              {Object.keys(allPlayers).map((id, i) => (
-                <div key={id} className="mini-avatar pulse">🧙‍♂️<span>Player {i+1}</span></div>
-              ))}
+            <div className="lobby-header">
+              <p className="subtitle">Quest initialization</p>
+              <h1 className="title">DUNGEON LOBBY</h1>
             </div>
-            <button className="action-btn-large" onClick={handleStartAdventure}>START ADVENTURE</button>
+
+            <div className="player-gallery">
+              <h3>Party Members ({playerCount})</h3>
+              <div className="avatar-list">
+                {playerCount > 0 ? (
+                  Object.entries(allPlayers).map(([id, player], index) => (
+                    <div key={id} className="mini-avatar pulse">
+                      <span className="emoji">{player.emoji || '🧙‍♂️'}</span>
+                      <span className="player-tag">
+                        {id === socketRef.current?.id ? "YOU" : `PLAYER ${index + 1}`}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="waiting-text">Waiting for adventurers to join...</p>
+                )}
+              </div>
+            </div>
+
+            <button 
+              className="action-btn-large" 
+              onClick={handleStartAdventure}
+              disabled={playerCount === 0}
+              style={{ opacity: playerCount === 0 ? 0.5 : 1 }}
+            >
+              START ADVENTURE
+            </button>
           </main>
         </div>
       </div>
     );
   }
-
   // --- VIEW: MOBILE ---
   if (view === 'mobile') {
     return (
@@ -87,7 +114,7 @@ function App() {
     );
   }
 
-  // --- VIEW: DESKTOP MAZE ---
+// --- VIEW: DESKTOP MAZE ---
   return (
     <div className="desktop-board">
       <div className="game-screen">
@@ -96,11 +123,39 @@ function App() {
             <svg viewBox="0 0 324 324" className="maze-svg-walls">
               <g className="wall-top-layer"><MazeGeometry /></g>
             </svg>
+            
             {Object.entries(allPlayers).map(([id, p]) => (
-              <div key={id} className="player-avatar" style={{ left: `${(p.x/324)*100}%`, top: `${(p.y/324)*100}%` }}>
-                <span className="emoji">🧙‍♂️</span>
+              <div 
+                key={id} 
+                className="player-avatar" 
+                style={{ 
+                  left: `${(p.x / 324) * 100}%`, 
+                  top: `${(p.y / 324) * 100}%` 
+                }}
+              >
+                <span className="emoji">{p.emoji || '🧙‍♂️'}</span>
+                {/* Visual indicator for the local player */}
+                {id === socketRef.current.id && <div className="me-indicator">YOU</div>}
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* NEW: Connected Users Sidebar */}
+        <div className="dm-log">
+          <h3>Party Members</h3>
+          <div className="messages">
+            {Object.entries(allPlayers).map(([id, p], index) => (
+              <div key={id} className="msg">
+                <span style={{fontSize: '1.5rem'}}>{p.emoji}</span> 
+                <strong> Player {index + 1}</strong>
+                <br />
+                <small style={{opacity: 0.5}}>{id === socketRef.current.id ? "(You)" : id.slice(0, 6)}</small>
+              </div>
+            ))}
+          </div>
+          <div className="join-footer" style={{position: 'static', marginTop: '20px'}}>
+             <p style={{fontSize: '0.8rem', color: 'black'}}>Room: {ROOM_ID}</p>
           </div>
         </div>
       </div>
