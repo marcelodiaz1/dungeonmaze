@@ -18,6 +18,39 @@ function App() {
 const [charName, setCharName] = useState('');
 const [selectedClass, setSelectedClass] = useState(null);
 
+const [diceRotation, setDiceRotation] = useState({ x: 0, y: 0 });
+
+const rollDice = () => {
+  if (isRolling) return;
+  setIsRolling(true);
+
+  // Generate a random result
+  const result = Math.floor(Math.random() * 6) + 1;
+  
+  // Define rotations for each face [x, y]
+  const rotations = {
+    1: [0, 0],      // Front
+    6: [0, 180],    // Back
+    3: [0, -90],    // Right
+    4: [0, 90],     // Left
+    2: [-90, 0],    // Top
+    5: [90, 0],     // Bottom
+  };
+
+  // Add 720 degrees (2 full spins) for extra "tumble" effect
+  const [targetX, targetY] = rotations[result];
+  setDiceRotation({ 
+    x: targetX + 720, 
+    y: targetY + 720 
+  });
+
+  setTimeout(() => {
+    setRollResult(result);
+    setIsRolling(false);
+    // Reset spin coordinates silently for the next roll
+    setDiceRotation({ x: targetX, y: targetY });
+  }, 1000);
+};
 const classes = [
   { id: 'barbarian', emoji: '🪓', color: '#e7623e' },
   { id: 'bard', emoji: '🪕', color: '#ab6dac' },
@@ -90,14 +123,7 @@ const sendMove = (dir) => {
     });
   }
 };
-  const rollDice = () => {
-    if (isRolling) return;
-    setIsRolling(true);
-    setTimeout(() => {
-      setRollResult(Math.floor(Math.random() * 20) + 1);
-      setIsRolling(false);
-    }, 600);
-  };
+ 
 
   // --- RENDER LOGIC (THE 3 SCREENS) ---
 if (view === 'character-creation') {
@@ -532,37 +558,4 @@ const MazeGeometry = () => (
     <line x1="322" y1="2" x2="322" y2="322" />
     </g>
 );
-const [diceRotation, setDiceRotation] = useState({ x: 0, y: 0 });
-
-const rollDice = () => {
-  if (isRolling) return;
-  setIsRolling(true);
-
-  // Generate a random result
-  const result = Math.floor(Math.random() * 6) + 1;
-  
-  // Define rotations for each face [x, y]
-  const rotations = {
-    1: [0, 0],      // Front
-    6: [0, 180],    // Back
-    3: [0, -90],    // Right
-    4: [0, 90],     // Left
-    2: [-90, 0],    // Top
-    5: [90, 0],     // Bottom
-  };
-
-  // Add 720 degrees (2 full spins) for extra "tumble" effect
-  const [targetX, targetY] = rotations[result];
-  setDiceRotation({ 
-    x: targetX + 720, 
-    y: targetY + 720 
-  });
-
-  setTimeout(() => {
-    setRollResult(result);
-    setIsRolling(false);
-    // Reset spin coordinates silently for the next roll
-    setDiceRotation({ x: targetX, y: targetY });
-  }, 1000);
-};
 export default App;
