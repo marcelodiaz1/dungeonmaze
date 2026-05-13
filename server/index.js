@@ -1,16 +1,36 @@
 let roomPlayers = {}; // { roomId: { socketId: { x, y } } }
 
+
+const players = {}; // Structure: { [roomId]: { [socketId]: { x, y, emoji } } }
+
 io.on('connection', (socket) => {
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
     
-    // Initialize player if they don't exist
-    if (!roomPlayers[roomId]) roomPlayers[roomId] = {};
-    roomPlayers[roomId][socket.id] = { x: 162, y: 162 };
+    if (!players[roomId]) players[roomId] = {};
+    
+    // Add the new player
+    players[roomId][socket.id] = { 
+      x: 162, 
+      y: 162, 
+      emoji: '🧙‍♂️' 
+    };
 
-    // Tell everyone in the room about the new player list
-    io.to(roomId).emit('update-players', roomPlayers[roomId]);
+    // CRITICAL: Use io.to().emit to update EVERYONE in the room
+    io.to(roomId).emit('update-players', players[roomId]);
   });
+
+  socket.on('disconnecting', () => {
+    // Clean up when someone leaves
+    for (const roomId of socket.rooms) {
+      if (players[roomId]) {
+        delete players[roomId][socket.id];
+        io.to(roomId).emit('update-players', players[roomId]);
+      }
+    }
+  });
+
+
 socket.on('start-game', (roomId) => {
   // Tells everyone in the room to change their 'view' state to 'desktop'
   io.to(roomId).emit('game-started');
