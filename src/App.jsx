@@ -14,8 +14,7 @@ function App() {
   const [messages, setMessages] = useState(["The circular walls pulse with magic..."]);
   const socketRef = useRef();
 
-  const currentUrl = window.location.origin + "/join";
-
+const currentUrl = `${window.location.origin}/join`;
   useEffect(() => {
     if (window.location.pathname.includes('/join')) {
       setView('mobile');
