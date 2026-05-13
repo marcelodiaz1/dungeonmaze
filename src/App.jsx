@@ -32,11 +32,17 @@ function App() {
     socketRef.current.on('connect', () => {
       socketRef.current.emit('join-room', ROOM_ID);
     });
-
-    socketRef.current.on('update-players', (playersMap) => {
-      setAllPlayers(playersMap);
-    });
-
+ 
+socketRef.current.on('update-players', (playersInRoom) => {
+    console.log("Syncing Party:", playersInRoom);
+    setAllPlayers(playersInRoom);
+  });
+  socketRef.current.on('player-moved', ({ id, pos }) => {
+    setAllPlayers(prev => ({
+      ...prev,
+      [id]: { ...prev[id], ...pos }
+    }));
+  });
     socketRef.current.on('game-started', () => {
       // Only redirect the Desktop to the maze; Mobile stays on controller
       const isMobileDevice = /Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -54,8 +60,15 @@ function App() {
     setView('desktop');
   };
 
-  const sendMove = (dir) => socketRef.current.emit('send-move', { roomId: ROOM_ID, direction: dir });
-
+const sendMove = (dir) => {
+  if (socketRef.current) {
+    console.log("Sending move:", dir); // Debugging
+    socketRef.current.emit('send-move', { 
+      roomId: ROOM_ID, 
+      direction: dir 
+    });
+  }
+};
   const rollDice = () => {
     if (isRolling) return;
     setIsRolling(true);

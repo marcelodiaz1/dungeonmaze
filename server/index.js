@@ -34,17 +34,21 @@ io.on('connection', (socket) => {
   });
 
   socket.on('send-move', ({ roomId, direction }) => {
+    // Check if the room and player exist
     if (!players[roomId] || !players[roomId][socket.id]) return;
     
     const player = players[roomId][socket.id];
-    const step = 8;
+    const step = 8; 
+
+    // Update coordinates
     if (direction === 'North') player.y -= step;
     if (direction === 'South') player.y += step;
     if (direction === 'West') player.x -= step;
     if (direction === 'East') player.x += step;
 
-    io.to(roomId).emit('player-moved', { id: socket.id, pos: player });
-  });
+    // BROADCAST: Send the updated map of ALL players in that specific room
+    io.to(roomId).emit('update-players', players[roomId]);
+});
 
   socket.on('disconnecting', () => {
     for (const roomId of socket.rooms) {
