@@ -258,21 +258,29 @@ if (view === 'character-creation') {
         <section className="team-section">
           <h3 className="section-divider"><span>Active Party</span></h3>
           <div className="player-cards-container">
-            {Object.entries(allPlayers).map(([id, player]) => (
-              <div key={id} className="char-card active-player shimmer">
-                <div className="card-inner">
-                  {/* Use player.emoji, fallback to wizard if not set yet */}
-                  <div className="char-avatar">{player.emoji || '🧙‍♂️'}</div>
-                  <div className="char-info">
-                    {/* Show the chosen name or "Connecting..." if empty */}
-                    <span className="char-name">{player.name || "Manifesting..."}</span>
-                    <div className="hp-bar-wrap"><div className="hp-fill"></div></div>
-                    {/* Show the class type as the status */}
-                    <span className="char-status">{player.classType ? player.classType.toUpperCase() : "READY"}</span>
+           {Object.entries(allPlayers).map(([id, player], index) => {
+              // DEBUG: Add this log to see what the phone is actually sending to the desktop
+              console.log("Rendering player:", id, player);
+
+              return (
+                <div key={id} className="char-card active-player shimmer">
+                  <div className="card-inner">
+                    {/* If player.emoji is missing, it shows the wizard */}
+                    <div className="char-avatar">{player.emoji || '🧙‍♂️'}</div>
+                    <div className="char-info">
+                      {/* Use player.name; if missing, show 'Manifesting...' */}
+                      <span className="char-name">
+                        {player.name ? player.name : `Seeker ${index + 1}`}
+                      </span>
+                      <div className="hp-bar-wrap"><div className="hp-fill"></div></div>
+                      <span className="char-status">
+                        {player.classType ? player.classType.toUpperCase() : "READY"}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {[...Array(emptySlots)].map((_, i) => (
               <div key={`empty-${i}`} className="char-card silhouette">
