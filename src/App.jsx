@@ -1,29 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { QRCodeSVG } from 'qrcode.react'; // Import the QR library
+import { QRCodeSVG } from 'qrcode.react'; 
 import './App.css';
 
-// Replace with your Vercel URL or Railway/Render Backend URL
+// UPDATE THIS to your hosted backend (Railway/Render)
 const SERVER_URL = "https://your-backend-service.com"; 
 const ROOM_ID = "dnd-maze-1";
 
 function App() {
   const [view, setView] = useState('lobby');
-  const [players, setPlayers] = useState([]); // Array of connected player IDs or names
+  const [players, setPlayers] = useState([]); 
   const [playerPos, setPlayerPos] = useState({ x: 162, y: 162 });
   const [messages, setMessages] = useState(["The circular walls pulse with magic..."]);
   const socketRef = useRef();
 
-const currentUrl = `${window.location.origin}/join`;
+  const currentUrl = `${window.location.origin}/join`;
+
   useEffect(() => {
+    // 1. Determine view on load
     if (window.location.pathname.includes('/join')) {
       setView('mobile');
     }
 
-    // Connect immediately to track lobby players
+    // 2. Initialize Socket
     socketRef.current = io(SERVER_URL);
     socketRef.current.emit('join-room', ROOM_ID);
 
+    // 3. Listeners
     socketRef.current.on('update-player-list', (list) => {
       setPlayers(list);
     });
@@ -46,28 +49,19 @@ const currentUrl = `${window.location.origin}/join`;
   const joinGame = () => setView('desktop');
   const sendMove = (dir) => socketRef.current?.emit('send-move', { roomId: ROOM_ID, direction: dir });
 
+  // --- VIEW 1: LOBBY ---
   if (view === 'lobby') {
     return (
       <div className="lobby-screen">
         <div className="lobby-container">
-          
-          {/* Left Side: QR & Join Info */}
           <section className="lobby-sidebar">
             <div className="qr-container">
-              <QRCodeSVG 
-                value={currentUrl} 
-                size={180} 
-                bgColor={"#ffffff"}
-                fgColor={"#0a0a0a"}
-                level={"L"}
-                includeMargin={true}
-              />
-              <p className="qr-hint">Scan to Join as Controller</p>
+              <QRCodeSVG value={currentUrl} size={180} includeMargin={true} />
+              <p className="qr-hint">Scan to Join</p>
             </div>
             <div className="url-display">{currentUrl}</div>
           </section>
 
-          {/* Center: Main Branding & Actions */}
           <main className="lobby-main">
             <header className="lobby-header">
               <h2 className="subtitle">The Ancient Labyrinth</h2>
@@ -85,7 +79,7 @@ const currentUrl = `${window.location.origin}/join`;
                     </div>
                   ))
                 ) : (
-                  <p className="waiting">Waiting for players to connect...</p>
+                  <p className="waiting">Waiting for players...</p>
                 )}
               </div>
             </div>
@@ -99,9 +93,52 @@ const currentUrl = `${window.location.origin}/join`;
     );
   }
 
-  // ... (Keep your existing mobile and desktop return blocks here)
+  // --- VIEW 2: MOBILE CONTROLLER ---
+  if (view === 'mobile') {
+    return (
+      <div className="mobile-controller">
+        <div className="d-pad">
+          <button className="dir-btn up" onClick={() => sendMove('North')}>▲</button>
+          <button className="dir-btn left" onClick={() => sendMove('West')}>◀</button>
+          <button className="dir-btn right" onClick={() => sendMove('East')}>▶</button>
+          <button className="dir-btn down" onClick={() => sendMove('South')}>▼</button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- VIEW 3: DESKTOP BOARD ---
+  return (
+    <div className="desktop-board">
+      <div className="game-screen">
+        <div className="isometric-wrapper">
+          <div className="maze-container">
+            <svg viewBox="0 0 324 324" className="maze-svg-walls">
+              <g className="floor-layer" style={{ color: '#222' }}><MazeGeometry /></g>
+              <g className="wall-top-layer" style={{ color: '#555' }}><MazeGeometry /></g>
+            </svg>
+
+            <div 
+              className="player-avatar" 
+              style={{ left: `${playerPos.x}px`, top: `${playerPos.y}px` }}
+            >
+              <span className="emoji">🧙‍♂️</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside className="dm-log">
+        <h3>Dungeon Master</h3>
+        <div className="messages">
+          {messages.map((m, i) => <p key={i} className="msg">{m}</p>)}
+        </div>
+      </aside>
+    </div>
+  );
 }
-// Keep your MazeGeometry component exactly as it was
+
+// Sub-component for the Maze
 const MazeGeometry = () => (
     <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
        <line x1="2" y1="2" x2="146" y2="2" />
@@ -306,4 +343,3 @@ const MazeGeometry = () => (
 );
 
 export default App;
-   
