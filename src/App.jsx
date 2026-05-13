@@ -49,75 +49,6 @@ function App() {
 
   const sendMove = (dir) => socketRef.current.emit('send-move', { roomId: ROOM_ID, direction: dir });
 
-  // --- VIEW: LOBBY --- 
- if (view === 'lobby') {
-  const playerCount = Object.keys(allPlayers).length;
-  const maxSlots = 4;
-  const emptySlots = Math.max(0, maxSlots - playerCount);
-
-  return (
-    <div className="lobby-screen">
-      {/* Animated Background Elements */}
-      <div className="fire-embers"></div>
-      
-      <div className="glass-container main-glow">
-        <header className="lobby-header">
-          <h1 className="game-title floating">LABYRINTH OF OATHS</h1>
-          <div className="title-separator"></div>
-          <p className="game-subtitle">The gate awaits the blood of the brave.</p>
-        </header>
-
-        <section className="steps-grid">
-          {[
-            { n: 1, t: "Link Soul", d: "Scan the ancient glyph", icon: <QRCodeSVG value={`${window.location.origin}/join`} size={70} bgColor="transparent" fgColor="#d4af37" /> },
-            { n: 2, t: "Manifest", d: "Shape your avatar", icon: "🎭" },
-            { n: 3, t: "Ascend", d: "Enter the void", icon: "⚔️" }
-          ].map(step => (
-            <div className="step-card reveal" key={step.n}>
-              <div className="step-num">{step.n}</div>
-              <h4>{step.t}</h4>
-              <div className="step-visual">{step.icon}</div>
-              <p>{step.d}</p>
-            </div>
-          ))}
-        </section>
-
-        <section className="team-section">
-          <h3 className="section-divider"><span>Active Party</span></h3>
-          <div className="player-cards-container">
-            {Object.entries(allPlayers).map(([id, player], index) => (
-              <div key={id} className="char-card active-player shimmer">
-                <div className="card-inner">
-                  <div className="char-avatar">{player.emoji || '🧙‍♂️'}</div>
-                  <div className="char-info">
-                    <span className="char-name">Seeker {index + 1}</span>
-                    <div className="hp-bar-wrap"><div className="hp-fill"></div></div>
-                    <span className="char-status">READY</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {[...Array(emptySlots)].map((_, i) => (
-              <div key={`empty-${i}`} className="char-card silhouette">
-                <div className="char-avatar">?</div>
-                <p>Waiting for Soul...</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <button 
-          className="begin-btn gold-pulse" 
-          onClick={handleStartAdventure}
-          disabled={playerCount === 0}
-        >
-          RELEASE THE OATH
-        </button>
-      </div>
-    </div>
-  );
-}
   // --- VIEW: MOBILE ---
 if (view === 'mobile') {
   const [activeTab, setActiveTab] = useState('controller');
@@ -208,6 +139,75 @@ if (view === 'mobile') {
           <span>📜</span><small>Tome</small>
         </button>
       </nav>
+    </div>
+  );
+}
+  // --- VIEW: LOBBY --- 
+ if (view === 'lobby') {
+  const playerCount = Object.keys(allPlayers).length;
+  const maxSlots = 4;
+  const emptySlots = Math.max(0, maxSlots - playerCount);
+
+  return (
+    <div className="lobby-screen">
+      {/* Animated Background Elements */}
+      <div className="fire-embers"></div>
+      
+      <div className="glass-container main-glow">
+        <header className="lobby-header">
+          <h1 className="game-title floating">LABYRINTH OF OATHS</h1>
+          <div className="title-separator"></div>
+          <p className="game-subtitle">The gate awaits the blood of the brave.</p>
+        </header>
+
+        <section className="steps-grid">
+          {[
+            { n: 1, t: "Link Soul", d: "Scan the ancient glyph", icon: <QRCodeSVG value={`${window.location.origin}/join`} size={70} bgColor="transparent" fgColor="#d4af37" /> },
+            { n: 2, t: "Manifest", d: "Shape your avatar", icon: "🎭" },
+            { n: 3, t: "Ascend", d: "Enter the void", icon: "⚔️" }
+          ].map(step => (
+            <div className="step-card reveal" key={step.n}>
+              <div className="step-num">{step.n}</div>
+              <h4>{step.t}</h4>
+              <div className="step-visual">{step.icon}</div>
+              <p>{step.d}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="team-section">
+          <h3 className="section-divider"><span>Active Party</span></h3>
+          <div className="player-cards-container">
+            {Object.entries(allPlayers).map(([id, player], index) => (
+              <div key={id} className="char-card active-player shimmer">
+                <div className="card-inner">
+                  <div className="char-avatar">{player.emoji || '🧙‍♂️'}</div>
+                  <div className="char-info">
+                    <span className="char-name">Seeker {index + 1}</span>
+                    <div className="hp-bar-wrap"><div className="hp-fill"></div></div>
+                    <span className="char-status">READY</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {[...Array(emptySlots)].map((_, i) => (
+              <div key={`empty-${i}`} className="char-card silhouette">
+                <div className="char-avatar">?</div>
+                <p>Waiting for Soul...</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <button 
+          className="begin-btn gold-pulse" 
+          onClick={handleStartAdventure}
+          disabled={playerCount === 0}
+        >
+          RELEASE THE OATH
+        </button>
+      </div>
     </div>
   );
 }
