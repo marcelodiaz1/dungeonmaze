@@ -318,24 +318,6 @@ body {
 .down  { grid-column: 2; grid-row: 2; }
 
 
-.dir-btn {
-  width: 80px;
-  height: 80px;
-  background: #222;
-  color: var(--gold);
-  border: 2px solid var(--gold);
-  font-size: 2rem;
-  border-radius: 15px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dir-btn:active {
-  background: var(--gold);
-  color: #000;
-}
-
 
 /* Mobile Container Styling */
 /* --- MOBILE LAYOUT --- */
