@@ -20,13 +20,9 @@ io.on('connection', (socket) => {
 
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
-    if (!players[roomId]) players[roomId] = {};
-    
-    // Initialize player at start position
-    players[roomId][socket.id] = { x: 162, y: 162, emoji: '🧙‍♂️' };
-
-    // Update everyone in the room
-    io.to(roomId).emit('update-players', players[roomId]);
+      if (players[roomId]) {
+            socket.emit('update-players', players[roomId]);
+          }
   });
 
   socket.on('start-game', (roomId) => {
@@ -61,6 +57,20 @@ io.on('connection', (socket) => {
   
   // index.js (Server)
   socket.on('player-details', ({ roomId, name, classType, emoji }) => {
+    if (!players[roomId]) players[roomId] = {};
+
+    // Now we officially create the player entry
+    players[roomId][socket.id] = {
+      x: 162,
+      y: 162,
+      name: name,
+      classType: classType,
+      emoji: emoji,
+      hp: 10,
+      maxHp: 10
+    };
+
+    io.to(roomId).emit('update-players', players[roomId]);
     if (players[roomId] && players[roomId][socket.id]) {
       // 1. Update the existing object with the new data from the phone
       players[roomId][socket.id].name = name;
