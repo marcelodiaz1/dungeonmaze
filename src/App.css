@@ -10,7 +10,7 @@
   --dark-bg: #0a0a0a;
   --panel-bg: #1a1a1a;
   --text: #e0e0e0;
-  --wall-height: 40px;
+  --wall-height: 20px; /* Reduced for better visibility */
   --iso-rotation: rotateX(60deg) rotateZ(45deg);
 }
 
@@ -19,10 +19,9 @@ body {
   color: var(--text);
   font-family: 'Cinzel', serif, system-ui;
   overflow: hidden;
-  line-height: 1.5;
 }
 
-/* 2. LAYOUT WRAPPERS */
+/* 2. LAYOUT */
 .desktop-board {
   display: flex;
   width: 100vw;
@@ -32,7 +31,6 @@ body {
 .game-screen {
   flex: 1;
   position: relative;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -41,398 +39,108 @@ body {
 
 /* 3. ISOMETRIC ENGINE */
 .isometric-wrapper {
-  perspective: 2000px;
+  perspective: 1000px;
   transform-style: preserve-3d;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .maze-container {
   position: relative;
-  width: 800px;
-  height: 800px;
+  width: 600px;  /* Matches common desktop views */
+  height: 600px;
   transform: var(--iso-rotation);
   transform-style: preserve-3d;
-  transition: transform 0.5s ease-out;
-  will-change: transform;
+  background: #111;
+  border: 4px solid #222;
 }
 
-/* Layers */
 .maze-svg-walls {
   width: 100%;
   height: 100%;
   position: absolute;
   top: 0;
   left: 0;
-  transform-style: preserve-3d;
+  overflow: visible; /* Important for 3D filter effects */
 }
 
-.floor-layer {
-  transform: translateZ(0);
-  background: #111;
-  border: 2px solid #333;
+/* 4. FIXING THE LABYRINTH LINES */
+/* Target 'line' specifically because your MazeGeometry uses <line> */
+.floor-layer line {
+  stroke: #222;
+  stroke-width: 3;
 }
 
-.wall-top-layer {
-  transform: translateZ(var(--wall-height));
-  filter: drop-shadow(0 0 5px rgba(0,0,0,0.8));
-}
-
-/* 3D Wall Extrusion Effect */
-.wall-top-layer path, 
-.wall-top-layer circle {
-  fill: #444;
+.wall-top-layer line {
   stroke: var(--gold);
   stroke-width: 2;
-  /* Creates the "depth" of the wall */
-  filter: drop-shadow(0px 2px 0px #333) 
-          drop-shadow(0px 10px 0px #222)
-          drop-shadow(0px 20px 0px #111);
+  /* This creates the 3D extrusion effect on the lines */
+  filter: drop-shadow(2px 2px 0px #856a1d) 
+          drop-shadow(4px 4px 0px #4d3d10);
 }
 
-/* 4. PLAYER CHARACTER */
+/* 5. PLAYER AVATAR FIXES */
 .player-avatar {
   position: absolute;
   z-index: 100;
   transform-style: preserve-3d;
-  transform: translateZ(50px); /* Slightly above walls */
-  transition: all 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-  will-change: left, top;
+  /* Using % based on the 324 viewBox coordinate system */
+  /* If playerPos is 162, 162, this puts them at 50% 50% */
+  transform: translateZ(30px); 
+  transition: all 0.2s ease-out;
 }
 
 .player-avatar .emoji {
   display: block;
-  font-size: 3.5rem;
-  /* Counter-rotation to make the sprite stand upright */
-  transform: rotateZ(-45deg) rotateX(-60deg) translateY(-50%);
-  filter: drop-shadow(0 20px 10px rgba(0,0,0,0.7));
-  text-align: center;
+  font-size: 3rem;
+  /* Stand the wizard upright against the isometric tilt */
+  transform: rotateZ(-45deg) rotateX(-60deg) translateY(-60%);
+  filter: drop-shadow(0 10px 10px rgba(0,0,0,0.8));
 }
 
-/* 5. DUNGEON MASTER LOG */
-.dm-log {
-  width: 350px;
-  background: var(--panel-bg);
-  border-left: 3px solid #333;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: -10px 0 30px rgba(0,0,0,0.5);
-}
-
-.dm-log h3 {
-  color: var(--gold);
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  border-bottom: 1px solid var(--gold);
-  padding-bottom: 10px;
-  margin-bottom: 20px;
-}
-
-.messages {
-  flex: 1;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--gold) transparent;
-}
-
-.msg {
-  margin-bottom: 15px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 4px;
-  border-left: 3px solid var(--gold);
-  font-style: italic;
-  font-size: 0.95rem;
-  animation: fadeIn 0.4s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateX(10px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-/* 6. MOBILE CONTROLLER */
-.mobile-controller {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  width: 100vw;
-  background: #000;
-  touch-action: none; /* Prevents accidental zooming/scrolling */
-}
-
-.d-pad {
-  display: grid;
-  grid-template-columns: repeat(3, 85px);
-  grid-template-rows: repeat(3, 85px);
-  gap: 15px;
-}
-
-.dir-btn {
-  background: #1a1a1a;
-  border: 2px solid var(--gold);
-  color: var(--gold);
-  border-radius: 20px;
-  font-size: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  user-select: none;
-  touch-action: manipulation;
-  transition: background 0.1s, transform 0.1s;
-}
-
-.dir-btn:active {
-  background: var(--gold);
-  color: black;
-  transform: scale(0.95);
-}
-
-.up    { grid-column: 2; grid-row: 1; }
-.left  { grid-column: 1; grid-row: 2; }
-.right { grid-column: 3; grid-row: 2; }
-.down  { grid-column: 2; grid-row: 3; }
-
-.action-btn {
-  margin-top: 60px;
-  width: 220px;
-  height: 65px;
-  background: var(--gold);
-  color: black;
-  font-weight: bold;
-  border: none;
-  border-radius: 35px;
-  font-size: 1.3rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
-}
-
-/* 7. UTILS */
-.join-footer {
+.player-label {
   position: absolute;
-  bottom: 25px;
-  left: 25px;
-  background: white;
-  padding: 15px;
-  border-radius: 12px;
-  color: black;
-  text-align: center;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.4);
-}
-
-.qr-placeholder {
-  width: 100px;
-  height: 100px;
-  background: #eee;
-  margin-bottom: 8px;
-}
-
-/* LOBBY STYLES */
-.lobby-screen {
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
-}
-
-.lobby-card {
-  text-align: center;
-  background: var(--panel-bg);
-  padding: 50px;
-  border: 3px solid var(--gold);
-  border-radius: 20px;
-  box-shadow: 0 0 50px rgba(214, 175, 55, 0.2);
-}
-
-.lobby-card h1 {
+  bottom: -20px;
+  background: rgba(0,0,0,0.8);
   color: var(--gold);
-  font-size: 2.5rem;
-  margin-bottom: 20px;
-  text-transform: uppercase;
-  letter-spacing: 3px;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transform: rotateZ(-45deg) rotateX(-60deg);
+  white-space: nowrap;
 }
 
-.character-preview {
-  font-size: 5rem;
-  margin: 30px 0;
-  filter: drop-shadow(0 0 15px var(--gold));
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
-}
-
-.lobby-card p {
-  margin-bottom: 30px;
-  font-style: italic;
-  color: #888;
-}
-
-/* ENHANCED LOBBY DESIGN */
+/* 6. LOBBY STYLES (Cleaned up) */
 .lobby-screen {
   height: 100vh;
   width: 100vw;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
-  color: white;
+  background: #000;
 }
 
 .lobby-container {
   display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 40px;
-  background: rgba(20, 20, 20, 0.9);
-  padding: 50px;
+  grid-template-columns: 280px 1fr;
+  gap: 30px;
+  background: var(--panel-bg);
+  padding: 40px;
   border: 2px solid var(--gold);
-  border-radius: 30px;
-  box-shadow: 0 0 100px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(212, 175, 55, 0.1);
-  max-width: 1000px;
-  width: 90%;
-}
-
-/* Sidebar / QR */
-.lobby-sidebar {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  border-right: 1px solid #333;
-  padding-right: 40px;
+  border-radius: 20px;
+  max-width: 900px;
 }
 
 .qr-container {
   background: white;
-  padding: 15px;
-  border-radius: 15px;
-  box-shadow: 0 0 30px rgba(212, 175, 55, 0.4);
+  padding: 10px;
+  border-radius: 10px;
 }
 
-.qr-hint {
-  color: var(--gold);
-  margin-top: 15px;
-  font-size: 0.8rem;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-/* Main Area */
-.lobby-main {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.subtitle {
-  color: #888;
-  font-size: 0.9rem;
-  letter-spacing: 5px;
-  text-transform: uppercase;
-}
-
-.title {
-  color: var(--gold);
-  font-size: 3.5rem;
-  margin-bottom: 30px;
-  text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
-}
-
-/* Player Gallery */
-.player-gallery h3 {
-  font-size: 1rem;
-  color: #555;
-  text-transform: uppercase;
-  border-bottom: 1px solid #333;
-  padding-bottom: 10px;
-  margin-bottom: 20px;
-}
-
-.avatar-list {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-  min-height: 120px;
-}
-
-.mini-avatar {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 15px;
-  border-radius: 12px;
-  border: 1px solid #444;
-}
-
-.mini-avatar .emoji {
-  font-size: 2.5rem;
-}
-
-.player-tag {
-  font-size: 0.7rem;
-  margin-top: 5px;
-  color: var(--gold);
-}
-
-/* Button */
 .action-btn-large {
   background: var(--gold);
-  color: black;
   border: none;
-  padding: 20px 40px;
-  font-size: 1.5rem;
-  font-weight: 900;
-  border-radius: 50px;
+  padding: 15px 30px;
+  font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s;
-  margin-top: 30px;
-  box-shadow: 0 10px 0 #9c7b1a;
-}
-
-.action-btn-large:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 13px 0 #9c7b1a;
-  filter: brightness(1.1);
-}
-
-.action-btn-large:active {
-  transform: translateY(7px);
-  box-shadow: 0 3px 0 #9c7b1a;
-}
-
-.pulse {
-  animation: pulse-glow 2s infinite ease-in-out;
-}
-
-@keyframes pulse-glow {
-  0%, 100% { border-color: #444; }
-  50% { border-color: var(--gold); box-shadow: 0 0 15px rgba(212, 175, 55, 0.2); }
-}
-
-.player-avatar {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transform: translate(-50%, -50%); /* Center the avatar on its X,Y coordinates */
-  pointer-events: none;
-}
-
-.player-label {
-  background: rgba(0, 0, 0, 0.7);
-  color: var(--gold);
-  font-size: 10px;
-  padding: 2px 5px;
-  border-radius: 4px;
-  margin-top: -5px;
-  white-space: nowrap;
+  border-radius: 10px;
+  margin-top: 20px;
 }
