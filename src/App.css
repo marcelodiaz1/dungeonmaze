@@ -300,6 +300,7 @@ body {
 
 /* Mobile Container Styling */
 .mobile-app-container {
+  display: flex !important; /* Force visibility */
   background: #050505;
   height: 100vh;
   width: 100vw;
