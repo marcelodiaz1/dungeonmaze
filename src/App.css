@@ -358,12 +358,7 @@ body {
 .bottom { transform: rotateX(-90deg) translateZ(50px); }
 
 /* --- KEYBOARD D-PAD --- */
-
-
-.d-pad-row {
-  display: flex;
-  gap: 8px;
-}
+ 
 
 .dir-btn {
   width: 70px;
