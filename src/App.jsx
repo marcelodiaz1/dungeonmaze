@@ -15,7 +15,6 @@ function App() {
   const [rollResult, setRollResult] = useState(20);
   const socketRef = useRef();
 // Add these to your state declarations at the top
-const [view, setView] = useState('loading'); 
 const [charName, setCharName] = useState('');
 const [selectedClass, setSelectedClass] = useState(null);
 
