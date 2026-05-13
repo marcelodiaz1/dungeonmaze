@@ -302,6 +302,7 @@ body {
 /* --- MOBILE LAYOUT --- */
 .mobile-app-container {
   height: 100vh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
   background: #0f0f0f;
@@ -315,6 +316,7 @@ body {
   align-items: center;
   justify-content: center;
   padding-bottom: 80px; /* Room for nav */
+  width: 100%;
 }
 
 /* --- 3D DICE --- */

@@ -127,7 +127,7 @@ function App() {
       <div className="mobile-app-container">
         <main className="mobile-content">
           {activeTab === 'controller' && (
-            <div className="controller-view">
+            <div className="tab-panel fade-in">
               <div className="scene" onClick={rollDice}>
                 <div className="dice" style={{ transform: `rotateX(${diceRotation.x}deg) rotateY(${diceRotation.y}deg)` }}>
                   <div className="face front">1</div>
@@ -150,7 +150,7 @@ function App() {
             </div>
           )}
           {activeTab === 'character' && (
-            <div className="tab-placeholder">
+            <div  className="tab-panel fade-in">
               <div className="hero-stat-card">
                 <span style={{fontSize: '4rem'}}>{selectedClass?.emoji}</span>
                 <h2>{charName}</h2>
