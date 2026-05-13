@@ -1,0 +1,278 @@
+/* 1. RESET & VARIABLES */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --gold: #d4af37;
+  --dark-bg: #0a0a0a;
+  --panel-bg: #1a1a1a;
+  --text: #e0e0e0;
+  --wall-height: 40px;
+  --iso-rotation: rotateX(60deg) rotateZ(45deg);
+}
+
+body {
+  background-color: var(--dark-bg);
+  color: var(--text);
+  font-family: 'Cinzel', serif, system-ui;
+  overflow: hidden;
+  line-height: 1.5;
+}
+
+/* 2. LAYOUT WRAPPERS */
+.desktop-board {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+}
+
+.game-screen {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
+}
+
+/* 3. ISOMETRIC ENGINE */
+.isometric-wrapper {
+  perspective: 2000px;
+  transform-style: preserve-3d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.maze-container {
+  position: relative;
+  width: 800px;
+  height: 800px;
+  transform: var(--iso-rotation);
+  transform-style: preserve-3d;
+  transition: transform 0.5s ease-out;
+  will-change: transform;
+}
+
+/* Layers */
+.maze-svg-walls {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-style: preserve-3d;
+}
+
+.floor-layer {
+  transform: translateZ(0);
+  background: #111;
+  border: 2px solid #333;
+}
+
+.wall-top-layer {
+  transform: translateZ(var(--wall-height));
+  filter: drop-shadow(0 0 5px rgba(0,0,0,0.8));
+}
+
+/* 3D Wall Extrusion Effect */
+.wall-top-layer path, 
+.wall-top-layer circle {
+  fill: #444;
+  stroke: var(--gold);
+  stroke-width: 2;
+  /* Creates the "depth" of the wall */
+  filter: drop-shadow(0px 2px 0px #333) 
+          drop-shadow(0px 10px 0px #222)
+          drop-shadow(0px 20px 0px #111);
+}
+
+/* 4. PLAYER CHARACTER */
+.player-avatar {
+  position: absolute;
+  z-index: 100;
+  transform-style: preserve-3d;
+  transform: translateZ(50px); /* Slightly above walls */
+  transition: all 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  will-change: left, top;
+}
+
+.player-avatar .emoji {
+  display: block;
+  font-size: 3.5rem;
+  /* Counter-rotation to make the sprite stand upright */
+  transform: rotateZ(-45deg) rotateX(-60deg) translateY(-50%);
+  filter: drop-shadow(0 20px 10px rgba(0,0,0,0.7));
+  text-align: center;
+}
+
+/* 5. DUNGEON MASTER LOG */
+.dm-log {
+  width: 350px;
+  background: var(--panel-bg);
+  border-left: 3px solid #333;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+}
+
+.dm-log h3 {
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border-bottom: 1px solid var(--gold);
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold) transparent;
+}
+
+.msg {
+  margin-bottom: 15px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+  border-left: 3px solid var(--gold);
+  font-style: italic;
+  font-size: 0.95rem;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* 6. MOBILE CONTROLLER */
+.mobile-controller {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  background: #000;
+  touch-action: none; /* Prevents accidental zooming/scrolling */
+}
+
+.d-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 85px);
+  grid-template-rows: repeat(3, 85px);
+  gap: 15px;
+}
+
+.dir-btn {
+  background: #1a1a1a;
+  border: 2px solid var(--gold);
+  color: var(--gold);
+  border-radius: 20px;
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  transition: background 0.1s, transform 0.1s;
+}
+
+.dir-btn:active {
+  background: var(--gold);
+  color: black;
+  transform: scale(0.95);
+}
+
+.up    { grid-column: 2; grid-row: 1; }
+.left  { grid-column: 1; grid-row: 2; }
+.right { grid-column: 3; grid-row: 2; }
+.down  { grid-column: 2; grid-row: 3; }
+
+.action-btn {
+  margin-top: 60px;
+  width: 220px;
+  height: 65px;
+  background: var(--gold);
+  color: black;
+  font-weight: bold;
+  border: none;
+  border-radius: 35px;
+  font-size: 1.3rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+}
+
+/* 7. UTILS */
+.join-footer {
+  position: absolute;
+  bottom: 25px;
+  left: 25px;
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  color: black;
+  text-align: center;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+}
+
+.qr-placeholder {
+  width: 100px;
+  height: 100px;
+  background: #eee;
+  margin-bottom: 8px;
+}
+
+/* LOBBY STYLES */
+.lobby-screen {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
+}
+
+.lobby-card {
+  text-align: center;
+  background: var(--panel-bg);
+  padding: 50px;
+  border: 3px solid var(--gold);
+  border-radius: 20px;
+  box-shadow: 0 0 50px rgba(214, 175, 55, 0.2);
+}
+
+.lobby-card h1 {
+  color: var(--gold);
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.character-preview {
+  font-size: 5rem;
+  margin: 30px 0;
+  filter: drop-shadow(0 0 15px var(--gold));
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.lobby-card p {
+  margin-bottom: 30px;
+  font-style: italic;
+  color: #888;
+}
