@@ -6,52 +6,7 @@ import './App.css';
 const SERVER_URL = "https://dungeonmaze.onrender.com"; 
 const ROOM_ID = "dnd-maze-1";
 
-
-function App() {
-  const [view, setView] = useState('loading'); // loading, lobby, desktop, mobile
-  const [allPlayers, setAllPlayers] = useState({});
-  const [activeTab, setActiveTab] = useState('controller');
-  const [isRolling, setIsRolling] = useState(false);
-  const [rollResult, setRollResult] = useState(20);
-  const socketRef = useRef();
-// Add these to your state declarations at the top
-const [charName, setCharName] = useState('');
-const [selectedClass, setSelectedClass] = useState(null);
-
-const [diceRotation, setDiceRotation] = useState({ x: 0, y: 0 });
-
-const rollDice = () => {
-  if (isRolling) return;
-  setIsRolling(true);
-
-  // Generate a random result
-  const result = Math.floor(Math.random() * 6) + 1;
-  
-  // Define rotations for each face [x, y]
-  const rotations = {
-    1: [0, 0],      // Front
-    6: [0, 180],    // Back
-    3: [0, -90],    // Right
-    4: [0, 90],     // Left
-    2: [-90, 0],    // Top
-    5: [90, 0],     // Bottom
-  };
-
-  // Add 720 degrees (2 full spins) for extra "tumble" effect
-  const [targetX, targetY] = rotations[result];
-  setDiceRotation({ 
-    x: targetX + 720, 
-    y: targetY + 720 
-  });
-
-  setTimeout(() => {
-    setRollResult(result);
-    setIsRolling(false);
-    // Reset spin coordinates silently for the next roll
-    setDiceRotation({ x: targetX, y: targetY });
-  }, 1000);
-};
-const classes = [
+const CLASSES = [
   { id: 'barbarian', emoji: '🪓', color: '#e7623e' },
   { id: 'bard', emoji: '🪕', color: '#ab6dac' },
   { id: 'cleric', emoji: '🛡️', color: '#91a1b2' },
@@ -64,137 +19,121 @@ const classes = [
   { id: 'sorcerer', emoji: '🔥', color: '#992e2e' },
   { id: 'warlock', emoji: '👁️', color: '#583377' },
   { id: 'wizard', emoji: '🧙‍♂️', color: '#2a50a1' },
-  
 ];
-  useEffect(() => {
-    // 1. DEVICE & ROUTE DETECTION
-    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isJoinLink = window.location.pathname.includes('/join');
 
-    if (isMobileDevice || isJoinLink) {
-          setView('character-creation');
-    } else {
-      setView('lobby');
-    }
-    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent) || window.location.pathname.includes('/join');
+function App() {
+  const [view, setView] = useState('loading'); 
+  const [allPlayers, setAllPlayers] = useState({});
+  const [activeTab, setActiveTab] = useState('controller');
+  const [isRolling, setIsRolling] = useState(false);
+  const [rollResult, setRollResult] = useState(1);
+  const [diceRotation, setDiceRotation] = useState({ x: 0, y: 0 });
+  const [charName, setCharName] = useState('');
+  const [selectedClass, setSelectedClass] = useState(null);
   
+  const socketRef = useRef();
 
+  useEffect(() => {
+    // 1. Detect device ONCE
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.location.pathname.includes('/join');
 
-    // 2. SOCKET SETUP
+    // 2. Initialize Socket ONCE
     socketRef.current = io(SERVER_URL, { transports: ['websocket'] });
 
     socketRef.current.on('connect', () => {
       socketRef.current.emit('join-room', ROOM_ID);
     });
- 
-socketRef.current.on('update-players', (playersInRoom) => {
-    console.log("Syncing Party:", playersInRoom);
-    setAllPlayers(playersInRoom);
-  });
-  socketRef.current.on('player-moved', ({ id, pos }) => {
-    setAllPlayers(prev => ({
-      ...prev,
-      [id]: { ...prev[id], ...pos }
-    }));
-  });
-    socketRef.current.on('game-started', () => {
-      // Only redirect the Desktop to the maze; Mobile stays on controller
-      const isMobileDevice = /Android|iPhone|iPad/i.test(navigator.userAgent);
-      if (!isMobileDevice) {
-        setView('desktop');
-      }
+
+    socketRef.current.on('update-players', (playersInRoom) => {
+      setAllPlayers(playersInRoom);
     });
+
+    socketRef.current.on('game-started', () => {
+      if (!isMobile) setView('desktop');
+    });
+
+    // Initial View Routing
+    setView(isMobile ? 'character-creation' : 'lobby');
 
     return () => socketRef.current.disconnect();
   }, []);
 
-  // --- ACTIONS ---
-  const handleStartAdventure = () => {
-    socketRef.current.emit('start-game', ROOM_ID);
-    setView('desktop');
+  const rollDice = () => {
+    if (isRolling) return;
+    setIsRolling(true);
+
+    const result = Math.floor(Math.random() * 6) + 1;
+    const rotations = {
+      1: [0, 0], 6: [0, 180], 3: [0, -90], 
+      4: [0, 90], 2: [-90, 0], 5: [90, 0],
+    };
+
+    const [targetX, targetY] = rotations[result];
+    // Add 720 for a 2-turn tumble
+    setDiceRotation({ x: targetX + 720, y: targetY + 720 });
+
+    setTimeout(() => {
+      setRollResult(result);
+      setIsRolling(false);
+      setDiceRotation({ x: targetX, y: targetY }); // Snap to clean rotation
+    }, 1000);
   };
 
-const sendMove = (dir) => {
-  if (socketRef.current) {
-    console.log("Sending move:", dir); // Debugging
-    socketRef.current.emit('send-move', { 
-      roomId: ROOM_ID, 
-      direction: dir 
-    });
-  }
-};
- 
-
-  // --- RENDER LOGIC (THE 3 SCREENS) ---
-if (view === 'character-creation') {
- 
   const handleJoinParty = () => {
     if (!charName || !selectedClass) return;
-    
-    const payload = {
+    socketRef.current.emit('player-details', {
       roomId: ROOM_ID,
       name: charName,
       classType: selectedClass.id,
       emoji: selectedClass.emoji
-    };
-
-    console.log("Phone sending details:", payload); // Check your phone's console for this!
-    
-    socketRef.current.emit('player-details', payload);
-    
-    setView('mobile'); // Switch to controller
+    });
+    setView('mobile');
   };
 
-  return (
-    <div className="creation-screen">
-      <div className="creation-glass">
-        <h2 className="creation-title">MANIFEST HERO</h2>
-        
-        <input 
-          type="text" 
-          placeholder="Enter Hero Name..." 
-          className="name-input"
-          value={charName}
-          onChange={(e) => setCharName(e.target.value)}
-        />
+  const sendMove = (dir) => {
+    socketRef.current.emit('send-move', { roomId: ROOM_ID, direction: dir });
+  };
 
-        <div className="class-grid">
-          {classes.map(c => (
-            <button 
-              key={c.id}
-              className={`class-card ${selectedClass?.id === c.id ? 'selected' : ''}`}
-              onClick={() => setSelectedClass(c)}
-              style={{ '--class-color': c.color }}
-            >
-              <span className="class-emoji">{c.emoji}</span>
-              <small className="class-label">{c.id}</small>
-            </button>
-          ))}
+  // --- RENDER LOGIC ---
+
+  if (view === 'loading') return <div className="loading">Summoning...</div>;
+
+  if (view === 'character-creation') {
+    return (
+      <div className="creation-screen">
+        <div className="creation-glass">
+          <h2 className="creation-title">MANIFEST HERO</h2>
+          <input 
+            type="text" placeholder="Enter Hero Name..." className="name-input"
+            value={charName} onChange={(e) => setCharName(e.target.value)}
+          />
+          <div className="class-grid">
+            {CLASSES.map(c => (
+              <button 
+                key={c.id} className={`class-card ${selectedClass?.id === c.id ? 'selected' : ''}`}
+                onClick={() => setSelectedClass(c)} style={{ '--class-color': c.color }}
+              >
+                <span className="class-emoji">{c.emoji}</span>
+                <small className="class-label">{c.id}</small>
+              </button>
+            ))}
+          </div>
+          <button className="join-btn" disabled={!charName || !selectedClass} onClick={handleJoinParty}>
+            ENTER THE LABYRINTH
+          </button>
         </div>
-
-        <button 
-          className="join-btn" 
-          disabled={!charName || !selectedClass}
-          onClick={handleJoinParty}
-        >
-          ENTER THE LABYRINTH
-        </button>
       </div>
-    </div>
-  );
-}
-  // SCREEN 1: MOBILE CONTROLLER
+    );
+  }
+
   if (view === 'mobile') {
     return (
       <div className="mobile-app-container">
         <main className="mobile-content">
           {activeTab === 'controller' && (
             <div className="controller-view">
-              {/* 3D DICE SCENE */}
               <div className="scene" onClick={rollDice}>
-                <div className="dice" style={{ 
-                  transform: `rotateX(${diceRotation.x}deg) rotateY(${diceRotation.y}deg)` 
-                }}>
+                <div className="dice" style={{ transform: `rotateX(${diceRotation.x}deg) rotateY(${diceRotation.y}deg)` }}>
                   <div className="face front">1</div>
                   <div className="face back">6</div>
                   <div className="face right">3</div>
@@ -204,7 +143,6 @@ if (view === 'character-creation') {
                 </div>
               </div>
 
-              {/* KEYBOARD STYLE D-PAD */}
               <div className="d-pad-wrapper">
                 <button className="dir-btn up" onClick={() => sendMove('North')}>▲</button>
                 <div className="d-pad-row">
@@ -215,9 +153,9 @@ if (view === 'character-creation') {
               </div>
             </div>
           )}
+          {activeTab === 'character' && <div className="tab-placeholder"><h2>{charName}</h2><p>{selectedClass?.id}</p></div>}
         </main>
 
-        {/* FIXED BOTTOM NAV */}
         <nav className="mobile-nav">
           <button onClick={() => setActiveTab('controller')} className={activeTab === 'controller' ? 'active' : ''}>
             <span>🎲</span><small>Play</small>
@@ -236,123 +174,29 @@ if (view === 'character-creation') {
     );
   }
 
-  // SCREEN 2: DESKTOP LOBBY
- if (view === 'lobby') {
-  const playerCount = Object.keys(allPlayers).length;
-  const maxSlots = 4;
-  const emptySlots = Math.max(0, maxSlots - playerCount);
-
-  return (
-    <div className="lobby-screen">
-      {/* Animated Background Elements */}
-      <div className="fire-embers"></div>
-      
-      <div className="glass-container main-glow">
-        <header className="lobby-header">
-          <h1 className="game-title floating">LABYRINTH OF OATHS</h1>
-          <div className="title-separator"></div>
-          <p className="game-subtitle">The gate awaits the blood of the brave.</p>
-        </header>
-
-        <section className="steps-grid">
-          {[
-            { n: 1, t: "Link Soul", d: "Scan the ancient glyph", icon: <QRCodeSVG value={`${window.location.origin}/join`} size={70} bgColor="transparent" fgColor="#d4af37" /> },
-            { n: 2, t: "Manifest", d: "Shape your avatar", icon: "🎭" },
-            { n: 3, t: "Ascend", d: "Enter the void", icon: "⚔️" }
-          ].map(step => (
-            <div className="step-card reveal" key={step.n}>
-              <div className="step-num">{step.n}</div>
-              <h4>{step.t}</h4>
-              <div className="step-visual">{step.icon}</div>
-              <p>{step.d}</p>
-            </div>
-          ))}
-        </section>
-
-        <section className="team-section">
-          <h3 className="section-divider"><span>Active Party</span></h3>
-          <div className="player-cards-container">
-           {Object.entries(allPlayers).map(([id, player], index) => {
-              // DEBUG: Add this log to see what the phone is actually sending to the desktop
-              console.log("Rendering player:", id, player);
-
-              return (
-                <div key={id} className="char-card active-player shimmer">
-                  <div className="card-inner">
-                    {/* If player.emoji is missing, it shows the wizard */}
-                    <div className="char-avatar">{player.emoji || '🧙‍♂️'}</div>
-                    <div className="char-info">
-                      {/* Use player.name; if missing, show 'Manifesting...' */}
-                      <span className="char-name">
-                        {player.name ? player.name : `Seeker ${index + 1}`}
-                      </span>
-                      <div className="hp-bar-wrap"><div className="hp-fill"></div></div>
-                      <span className="char-status">
-                        {player.classType ? player.classType.toUpperCase() : "READY"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {[...Array(emptySlots)].map((_, i) => (
-              <div key={`empty-${i}`} className="char-card silhouette">
-                <div className="char-avatar">💀</div>
-                <p>Waiting for Soul...</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <button 
-          className="begin-btn gold-pulse" 
-          onClick={handleStartAdventure}
-          disabled={playerCount === 0}
-        >
-          RELEASE THE OATH
-        </button>
-      </div>
-    </div>
-  );
-}
-
-  // SCREEN 3: DESKTOP MAZE (GAME ON)
-  if (view === 'desktop') {
+  if (view === 'lobby') {
     return (
-     <div className="desktop-board">
-        <div className="game-screen">
-          <div className="maze-container">
-            <svg viewBox="0 0 324 324" className="maze-svg-walls">
-              <MazeGeometry />
-            </svg>
-            {Object.entries(allPlayers).map(([id, p]) => (
-              <div 
-                key={id} 
-                className="player-avatar" 
-                style={{ 
-                  left: `${(p.x / 324) * 100}%`, 
-                  top: `${(p.y / 324) * 100}%`,
-                  transition: 'left 0.2s ease-out, top 0.2s ease-out' 
-                }}
-              >
-                {/* Floating Name Tag */}
-                <div className="player-name-tag">{p.name || "???"}</div>
-                
-                {/* Class Emoji */}
-                <span className="emoji">{p.emoji || '🧙‍♂️'}</span>
-                
-                {/* Indicator for the local desktop user if applicable */}
-                {id === socketRef.current?.id && <div className="me-indicator">YOU</div>}
+      <div className="lobby-screen">
+        <div className="glass-container main-glow">
+          <h1 className="game-title">LABYRINTH OF OATHS</h1>
+          <div className="player-cards-container">
+            {Object.entries(allPlayers).map(([id, player]) => (
+              <div key={id} className="char-card active-player shimmer">
+                <div className="char-avatar">{player.emoji}</div>
+                <div className="char-info">
+                   <span className="char-name">{player.name}</span>
+                   <span className="char-status">{player.classType}</span>
+                </div>
               </div>
             ))}
           </div>
+          <QRCodeSVG value={`${window.location.origin}/join`} />
+          <button className="begin-btn" onClick={() => socketRef.current.emit('start-game', ROOM_ID)}>RELEASE THE OATH</button>
         </div>
       </div>
     );
   }
-
-  // Default Loading state
+ // Default Loading state
   return <div className="loading">Summoning...</div>;
 }
 
