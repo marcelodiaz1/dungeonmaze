@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
 import './App.css';
 
-const SERVER_URL = "https://your-backend-service.com"; 
+const SERVER_URL = "https://dungeonmaze.vercel.app/"; 
 const ROOM_ID = "dnd-maze-1";
 
 function App() {
@@ -12,33 +12,35 @@ function App() {
   const socketRef = useRef();
 
   useEffect(() => {
-    // 1. Check if this is the phone controller
-    if (window.location.pathname.includes('/join')) {
-      setView('mobile');
-    }
+  // Check routing
+  if (window.location.pathname.includes('/join')) setView('mobile');
 
-    socketRef.current = io(SERVER_URL);
+  // Connect
+  socketRef.current = io(SERVER_URL, {
+    transports: ['websocket'], // Forces a faster connection
+  });
+
+  // When we connect, the server should send the current player list
+  socketRef.current.on('connect', () => {
+    console.log("Connected as:", socketRef.current.id);
     socketRef.current.emit('join-room', ROOM_ID);
+  });
 
-    // 2. LISTEN: When the host starts the game, everyone moves to 'desktop'
-    socketRef.current.on('game-started', () => {
-      setView('desktop');
-    });
+  socketRef.current.on('update-players', (playersMap) => {
+    console.log("Players updated:", playersMap);
+    setAllPlayers(playersMap);
+  });
 
-    socketRef.current.on('update-players', (playersMap) => {
-      setAllPlayers(playersMap);
-    });
+  // Listen for individual movements
+  socketRef.current.on('player-moved', ({ id, pos }) => {
+    setAllPlayers(prev => ({
+      ...prev,
+      [id]: { ...prev[id], ...pos }
+    }));
+  });
 
-    socketRef.current.on('player-moved', ({ id, pos }) => {
-      setAllPlayers(prev => ({
-        ...prev,
-        [id]: { ...prev[id], ...pos }
-      }));
-    });
-
-    return () => socketRef.current.disconnect();
-  }, []);
-
+  return () => socketRef.current.disconnect();
+}, []);
   // Tell the server to start the game for everyone
   const handleStartAdventure = () => {
     socketRef.current.emit('start-game', ROOM_ID);

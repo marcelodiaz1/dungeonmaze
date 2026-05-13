@@ -11,7 +11,10 @@ io.on('connection', (socket) => {
     // Tell everyone in the room about the new player list
     io.to(roomId).emit('update-players', roomPlayers[roomId]);
   });
-
+socket.on('start-game', (roomId) => {
+  // Tells everyone in the room to change their 'view' state to 'desktop'
+  io.to(roomId).emit('game-started');
+});
   socket.on('send-move', ({ roomId, direction }) => {
     const player = roomPlayers[roomId][socket.id];
     if (!player) return;
