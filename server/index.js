@@ -1,14 +1,31 @@
+import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+
+const app = express();
+const server = createServer(app);
+
+// 1. Initialize 'io' correctly with CORS
+const io = new Server(server, {
+  cors: {
+    origin: "https://dungeonmaze.vercel.app", // Your Vercel URL
+    methods: ["GET", "POST"]
+  }
+});
+
 const players = {}; 
 
 io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
     if (!players[roomId]) players[roomId] = {};
     
-    // Initialize player
+    // Initialize player at start position
     players[roomId][socket.id] = { x: 162, y: 162, emoji: '🧙‍♂️' };
 
-    // Update everyone
+    // Update everyone in the room
     io.to(roomId).emit('update-players', players[roomId]);
   });
 
@@ -17,7 +34,6 @@ io.on('connection', (socket) => {
   });
 
   socket.on('send-move', ({ roomId, direction }) => {
-    // FIX: Use 'players' instead of 'roomPlayers'
     if (!players[roomId] || !players[roomId][socket.id]) return;
     
     const player = players[roomId][socket.id];
@@ -38,4 +54,9 @@ io.on('connection', (socket) => {
       }
     }
   });
+});
+
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
