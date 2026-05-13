@@ -8,74 +8,65 @@ const ROOM_ID = "dnd-maze-1";
 
 
 function App() {
-  const [view, setView] = useState('loading'); // loading, lobby, desktop, mobile
+const [view, setView] = useState('loading');
   const [allPlayers, setAllPlayers] = useState({});
   const [activeTab, setActiveTab] = useState('controller');
+  const [charName, setCharName] = useState('');
+  const [selectedClass, setSelectedClass] = useState(null);
+  
+  // Dice states
   const [isRolling, setIsRolling] = useState(false);
   const [rollResult, setRollResult] = useState(20);
+
   const socketRef = useRef();
-// Add these to your state declarations at the top
-const [charName, setCharName] = useState('');
-const [selectedClass, setSelectedClass] = useState(null);
 
-const classes = [
-  { id: 'barbarian', emoji: '🪓', color: '#e7623e' },
-  { id: 'bard', emoji: '🪕', color: '#ab6dac' },
-  { id: 'cleric', emoji: '🛡️', color: '#91a1b2' },
-  { id: 'druid', emoji: '🍃', color: '#7a853b' },
-  { id: 'fighter', emoji: '⚔️', color: '#7f513e' },
-  { id: 'monk', emoji: '👊', color: '#5167cc' },
-  { id: 'paladin', emoji: '✨', color: '#b59e54' },
-  { id: 'ranger', emoji: '🏹', color: '#24592f' },
-  { id: 'rogue', emoji: '🗡️', color: '#555752' },
-  { id: 'sorcerer', emoji: '🔥', color: '#992e2e' },
-  { id: 'warlock', emoji: '👁️', color: '#583377' },
-  { id: 'wizard', emoji: '🧙‍♂️', color: '#2a50a1' },
-  
-];
   useEffect(() => {
-    // 1. DEVICE & ROUTE DETECTION
-    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isJoinLink = window.location.pathname.includes('/join');
-
-    if (isMobileDevice || isJoinLink) {
-          setView('character-creation');
-    } else {
-      setView('lobby');
-    }
+    // 1. Determine Identity once
     const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent) || window.location.pathname.includes('/join');
-  
-
-
-    // 2. SOCKET SETUP
+    
+    // 2. Initialize Socket once
     socketRef.current = io(SERVER_URL, { transports: ['websocket'] });
 
     socketRef.current.on('connect', () => {
+      console.log("Connected as:", isMobile ? "Player" : "Spectator");
       socketRef.current.emit('join-room', ROOM_ID);
     });
- 
-socketRef.current.on('update-players', (playersInRoom) => {
-    console.log("Syncing Party:", playersInRoom);
-    setAllPlayers(playersInRoom);
-  });
-  socketRef.current.on('player-moved', ({ id, pos }) => {
-    setAllPlayers(prev => ({
-      ...prev,
-      [id]: { ...prev[id], ...pos }
-    }));
-  });
-    socketRef.current.on('game-started', () => {
-      // Only redirect the Desktop to the maze; Mobile stays on controller
-      const isMobileDevice = /Android|iPhone|iPad/i.test(navigator.userAgent);
-      if (!isMobileDevice) {
-        setView('desktop');
-      }
+
+    // 3. Listeners
+    socketRef.current.on('update-players', (playersInRoom) => {
+      setAllPlayers(playersInRoom);
     });
+
+    socketRef.current.on('game-started', () => {
+      // Only the Laptop/Desktop moves to the maze view
+      if (!isMobile) setView('desktop');
+    });
+
+    // 4. Initial View Routing
+    if (isMobile) {
+      setView('character-creation');
+    } else {
+      setView('lobby');
+    }
 
     return () => socketRef.current.disconnect();
   }, []);
 
   // --- ACTIONS ---
+  const handleJoinParty = () => {
+    if (!charName || !selectedClass) return;
+    
+    // This event officially registers the phone as a player on the server
+    socketRef.current.emit('player-details', {
+      roomId: ROOM_ID,
+      name: charName,
+      classType: selectedClass.id,
+      emoji: selectedClass.emoji
+    });
+    
+    setView('mobile');
+  };
+
   const handleStartAdventure = () => {
     socketRef.current.emit('start-game', ROOM_ID);
     setView('desktop');
@@ -288,7 +279,7 @@ if (view === 'character-creation') {
 
             {[...Array(emptySlots)].map((_, i) => (
               <div key={`empty-${i}`} className="char-card silhouette">
-                <div className="char-avatar">?</div>
+                <div className="char-avatar">💀</div>
                 <p>Waiting for Soul...</p>
               </div>
             ))}
