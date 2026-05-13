@@ -5,61 +5,37 @@ import { Server } from 'socket.io';
 const app = express();
 const server = createServer(app);
 
-// 1. Initialize 'io' correctly with CORS
 const io = new Server(server, {
   cors: {
-    origin: "https://dungeonmaze.vercel.app", // Your Vercel URL
+    // Tip: Use "*" during testing if you still have issues, 
+    // then switch back to your Vercel URL for production.
+    origin: ["https://dungeonmaze.vercel.app", "http://localhost:3000"], 
     methods: ["GET", "POST"]
   }
 });
 
+// Structure: { "room-id": { "socket-id": { x, y, name, ... } } }
 const players = {}; 
 
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
+  // 1. JOIN ROOM (Spectator mode)
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
-      if (players[roomId]) {
-            socket.emit('update-players', players[roomId]);
-          }
-  });
-
-  socket.on('start-game', (roomId) => {
-    io.to(roomId).emit('game-started');
-  });
-
-  socket.on('send-move', ({ roomId, direction }) => {
-    // Check if the room and player exist
-    if (!players[roomId] || !players[roomId][socket.id]) return;
+    console.log(`Socket ${socket.id} joined room: ${roomId}`);
     
-    const player = players[roomId][socket.id];
-    const step = 8; 
-
-    // Update coordinates
-    if (direction === 'North') player.y -= step;
-    if (direction === 'South') player.y += step;
-    if (direction === 'West') player.x -= step;
-    if (direction === 'East') player.x += step;
-
-    // BROADCAST: Send the updated map of ALL players in that specific room
-    io.to(roomId).emit('update-players', players[roomId]);
-});
-
-  socket.on('disconnecting', () => {
-    for (const roomId of socket.rooms) {
-      if (players[roomId] && players[roomId][socket.id]) {
-        delete players[roomId][socket.id];
-        io.to(roomId).emit('update-players', players[roomId]);
-      }
+    // Send existing players to the newcomer (so laptop sees current party)
+    if (players[roomId]) {
+      socket.emit('update-players', players[roomId]);
     }
   });
-  
-  // index.js (Server)
+
+  // 2. REGISTER PLAYER (Triggered by Phone after character creation)
   socket.on('player-details', ({ roomId, name, classType, emoji }) => {
     if (!players[roomId]) players[roomId] = {};
 
-    // Now we officially create the player entry
+    // Create or Update the player entry
     players[roomId][socket.id] = {
       x: 162,
       y: 162,
@@ -70,24 +46,48 @@ io.on('connection', (socket) => {
       maxHp: 10
     };
 
+    console.log(`Hero Manifested: ${name} (${classType}) in ${roomId}`);
+
+    // Broadcast the updated list to the whole room
     io.to(roomId).emit('update-players', players[roomId]);
-    if (players[roomId] && players[roomId][socket.id]) {
-      // 1. Update the existing object with the new data from the phone
-      players[roomId][socket.id].name = name;
-      players[roomId][socket.id].classType = classType;
-      players[roomId][socket.id].emoji = emoji;
+  });
 
-      console.log(`Updated player ${socket.id} in room ${roomId}:`, players[roomId][socket.id]);
+  // 3. START GAME
+  socket.on('start-game', (roomId) => {
+    io.to(roomId).emit('game-started');
+  });
 
-      // 2. Broadcast to everyone (Desktop Lobby & other phones)
-      io.to(roomId).emit('update-players', players[roomId]);
-    } else {
-      console.log("Error: Player tried to send details but wasn't in the players object yet.");
-    }
+  // 4. MOVEMENT
+  socket.on('send-move', ({ roomId, direction }) => {
+    if (!players[roomId] || !players[roomId][socket.id]) return;
+    
+    const player = players[roomId][socket.id];
+    const step = 18; // Increased slightly for better visibility
+
+    if (direction === 'North') player.y -= step;
+    if (direction === 'South') player.y += step;
+    if (direction === 'West')  player.x -= step;
+    if (direction === 'East')  player.x += step;
+
+    io.to(roomId).emit('update-players', players[roomId]);
+  });
+
+  // 5. DISCONNECT
+  socket.on('disconnecting', () => {
+    // socket.rooms is a Set, so we use forEach
+    socket.rooms.forEach(roomId => {
+      if (players[roomId] && players[roomId][socket.id]) {
+        console.log(`Removing ${players[roomId][socket.id].name} from room ${roomId}`);
+        delete players[roomId][socket.id];
+        
+        // Update remaining players so the card disappears from the lobby
+        io.to(roomId).emit('update-players', players[roomId]);
+      }
+    });
   });
 });
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Dungeon Server online on port ${PORT}`);
 });
