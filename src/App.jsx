@@ -111,23 +111,28 @@ function App() {
   return (
     <div className="desktop-board">
       <div className="game-screen">
-        <div className="isometric-wrapper">
-          <div className="maze-container">
-            <svg viewBox="0 0 324 324" className="maze-svg-walls">
-              <g className="floor-layer" style={{ color: '#222' }}><MazeGeometry /></g>
-              <g className="wall-top-layer" style={{ color: '#555' }}><MazeGeometry /></g>
-            </svg>
+        <div className="maze-container">
+          <svg viewBox="0 0 324 324" className="maze-svg-walls">
+             <MazeGeometry />
+          </svg>
 
+          {/* RENDER EVERY PLAYER IN THE MAP */}
+          {Object.entries(allPlayers).map(([id, player]) => (
             <div 
+              key={id}
               className="player-avatar" 
-              style={{ left: `${playerPos.x}px`, top: `${playerPos.y}px` }}
+              style={{ 
+                left: `${player.x}px`, 
+                top: `${player.y}px`,
+                transition: 'all 0.1s ease-out' // Smooth movement
+              }}
             >
               <span className="emoji">🧙‍♂️</span>
+              <span className="player-label">P-{id.slice(0,3)}</span>
             </div>
-          </div>
+          ))}
         </div>
       </div>
-
       <aside className="dm-log">
         <h3>Dungeon Master</h3>
         <div className="messages">
@@ -138,7 +143,6 @@ function App() {
   );
 }
 
-// Sub-component for the Maze
 const MazeGeometry = () => (
     <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
        <line x1="2" y1="2" x2="146" y2="2" />
