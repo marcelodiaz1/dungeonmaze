@@ -50,69 +50,167 @@ function App() {
   const sendMove = (dir) => socketRef.current.emit('send-move', { roomId: ROOM_ID, direction: dir });
 
   // --- VIEW: LOBBY --- 
-  if (view === 'lobby') {
-    const playerCount = Object.keys(allPlayers).length;
+ if (view === 'lobby') {
+  const playerCount = Object.keys(allPlayers).length;
+  const maxSlots = 4;
+  const emptySlots = Math.max(0, maxSlots - playerCount);
 
-    return (
-      <div className="lobby-screen">
-        <div className="lobby-container">
-          <section className="lobby-sidebar">
-            <div className="qr-container">
-              <QRCodeSVG value={`${window.location.origin}/join`} size={180} />
+  return (
+    <div className="lobby-screen">
+      {/* Animated Background Elements */}
+      <div className="fire-embers"></div>
+      
+      <div className="glass-container main-glow">
+        <header className="lobby-header">
+          <h1 className="game-title floating">LABYRINTH OF OATHS</h1>
+          <div className="title-separator"></div>
+          <p className="game-subtitle">The gate awaits the blood of the brave.</p>
+        </header>
+
+        <section className="steps-grid">
+          {[
+            { n: 1, t: "Link Soul", d: "Scan the ancient glyph", icon: <QRCodeSVG value={`${window.location.origin}/join`} size={70} bgColor="transparent" fgColor="#d4af37" /> },
+            { n: 2, t: "Manifest", d: "Shape your avatar", icon: "🎭" },
+            { n: 3, t: "Ascend", d: "Enter the void", icon: "⚔️" }
+          ].map(step => (
+            <div className="step-card reveal" key={step.n}>
+              <div className="step-num">{step.n}</div>
+              <h4>{step.t}</h4>
+              <div className="step-visual">{step.icon}</div>
+              <p>{step.d}</p>
             </div>
-            <p className="qr-hint">Scan to Join</p>
-          </section>
+          ))}
+        </section>
 
-          <main className="lobby-main">
-            <div className="lobby-header">
-              <p className="subtitle">Quest initialization</p>
-              <h1 className="title">DUNGEON LOBBY</h1>
-            </div>
-
-            <div className="player-gallery">
-              <h3>Party Members ({playerCount})</h3>
-              <div className="avatar-list">
-                {playerCount > 0 ? (
-                  Object.entries(allPlayers).map(([id, player], index) => (
-                    <div key={id} className="mini-avatar pulse">
-                      <span className="emoji">{player.emoji || '🧙‍♂️'}</span>
-                      <span className="player-tag">
-                        {id === socketRef.current?.id ? "YOU" : `PLAYER ${index + 1}`}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="waiting-text">Waiting for adventurers to join...</p>
-                )}
+        <section className="team-section">
+          <h3 className="section-divider"><span>Active Party</span></h3>
+          <div className="player-cards-container">
+            {Object.entries(allPlayers).map(([id, player], index) => (
+              <div key={id} className="char-card active-player shimmer">
+                <div className="card-inner">
+                  <div className="char-avatar">{player.emoji || '🧙‍♂️'}</div>
+                  <div className="char-info">
+                    <span className="char-name">Seeker {index + 1}</span>
+                    <div className="hp-bar-wrap"><div className="hp-fill"></div></div>
+                    <span className="char-status">READY</span>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
 
-            <button 
-              className="action-btn-large" 
-              onClick={handleStartAdventure}
-              disabled={playerCount === 0}
-              style={{ opacity: playerCount === 0 ? 0.5 : 1 }}
-            >
-              START ADVENTURE
-            </button>
-          </main>
-        </div>
+            {[...Array(emptySlots)].map((_, i) => (
+              <div key={`empty-${i}`} className="char-card silhouette">
+                <div className="char-avatar">?</div>
+                <p>Waiting for Soul...</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <button 
+          className="begin-btn gold-pulse" 
+          onClick={handleStartAdventure}
+          disabled={playerCount === 0}
+        >
+          RELEASE THE OATH
+        </button>
       </div>
-    );
-  }
+    </div>
+  );
+}
   // --- VIEW: MOBILE ---
-  if (view === 'mobile') {
-    return (
-      <div className="mobile-controller">
-        <div className="d-pad">
-          <button className="dir-btn up" onClick={() => sendMove('North')}>▲</button>
-          <button className="dir-btn left" onClick={() => sendMove('West')}>◀</button>
-          <button className="dir-btn right" onClick={() => sendMove('East')}>▶</button>
-          <button className="dir-btn down" onClick={() => sendMove('South')}>▼</button>
-        </div>
-      </div>
-    );
-  }
+if (view === 'mobile') {
+  const [activeTab, setActiveTab] = useState('controller');
+  const [isRolling, setIsRolling] = useState(false);
+  const [rollResult, setRollResult] = useState(20);
+
+  const rollDice = () => {
+    if (isRolling) return;
+    setIsRolling(true);
+    // Simulate a chaotic roll
+    setTimeout(() => {
+      setRollResult(Math.floor(Math.random() * 20) + 1);
+      setIsRolling(false);
+    }, 600);
+  };
+
+  return (
+    <div className="mobile-app-container">
+      {/* 1. Header with Stats */}
+      <header className="mobile-stats-bar">
+        <div className="stat-pill hp">❤️ 10/10</div>
+        <div className="stat-pill mp">✨ 5/5</div>
+        <div className="stat-pill xp">⭐ LVL 1</div>
+      </header>
+
+      {/* 2. Main Content Area */}
+      <main className="mobile-content">
+        {activeTab === 'controller' && (
+          <div className="controller-view fade-in">
+            <div className="d20-container" onClick={rollDice}>
+              <div className={`d20 ${isRolling ? 'rolling' : ''}`}>
+                <span className="roll-number">{rollResult}</span>
+              </div>
+              <p className="dice-hint">Tap to Roll D20</p>
+            </div>
+            
+            <div className="d-pad">
+              <button className="dir-btn up" onClick={() => sendMove('North')}>▲</button>
+              <button className="dir-btn left" onClick={() => sendMove('West')}>◀</button>
+              <button className="dir-btn right" onClick={() => sendMove('East')}>▶</button>
+              <button className="dir-btn down" onClick={() => sendMove('South')}>▼</button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'character' && (
+          <div className="tab-panel fade-in">
+            <h2 className="tab-title">Character Sheet</h2>
+            <div className="sheet-row"><span>Strength</span><strong>14</strong></div>
+            <div className="sheet-row"><span>Agility</span><strong>12</strong></div>
+            <div className="sheet-row"><span>Wisdom</span><strong>18</strong></div>
+          </div>
+        )}
+
+        {activeTab === 'inventory' && (
+          <div className="tab-panel fade-in">
+            <h2 className="tab-title">Inventory</h2>
+            <div className="inv-grid">
+              <div className="inv-slot">🗡️</div>
+              <div className="inv-slot">🧪</div>
+              <div className="inv-slot">🕯️</div>
+              <div className="inv-slot empty"></div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'tome' && (
+          <div className="tab-panel fade-in">
+            <h2 className="tab-title">The Tome</h2>
+            <div className="log-entry">You entered the Labyrinth.</div>
+            <div className="log-entry">The air feels cold...</div>
+          </div>
+        )}
+      </main>
+
+      {/* 3. Bottom Navigation Menu */}
+      <nav className="mobile-nav">
+        <button onClick={() => setActiveTab('controller')} className={activeTab === 'controller' ? 'active' : ''}>
+          <span>🎲</span><small>Play</small>
+        </button>
+        <button onClick={() => setActiveTab('character')} className={activeTab === 'character' ? 'active' : ''}>
+          <span>👤</span><small>Hero</small>
+        </button>
+        <button onClick={() => setActiveTab('inventory')} className={activeTab === 'inventory' ? 'active' : ''}>
+          <span>🎒</span><small>Items</small>
+        </button>
+        <button onClick={() => setActiveTab('tome')} className={activeTab === 'tome' ? 'active' : ''}>
+          <span>📜</span><small>Tome</small>
+        </button>
+      </nav>
+    </div>
+  );
+}
 
 // --- VIEW: DESKTOP MAZE ---
   return (
