@@ -139,9 +139,8 @@ function App() {
                 </div>
               </div>
 
-              <div className="d-pad-wrapper">
-                <button className="dir-btn up" onClick={() => sendMove('North')}>▲</button>
-                <div className="d-pad"> {/* Changed wrapper class to match your CSS */}
+              <div>
+                <div className="d-pad">   
                   <button className="dir-btn up" onClick={() => sendMove('North')}>▲</button>
                   <button className="dir-btn left" onClick={() => sendMove('West')}>◀</button>
                   <button className="dir-btn down" onClick={() => sendMove('South')}>▼</button>
