@@ -456,3 +456,99 @@ body {
   display: flex;
   gap: 40px; /* Space between left and right arrows */
 }
+
+/* --- ISOMETRIC GAME BOARD --- */
+.desktop-board {
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at center, #0a0a0a 0%, #000 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  perspective: 1200px; /* Crucial for 3D depth */
+}
+
+.game-screen {
+  position: relative;
+  /* Tilts the entire board */
+  transform: rotateX(45deg) rotateZ(-45deg);
+  transform-style: preserve-3d;
+  transition: transform 0.5s ease;
+}
+
+.maze-container {
+  position: relative;
+  width: 600px; /* Increased size for desktop impact */
+  height: 600px;
+  background: rgba(20, 20, 20, 0.8);
+  border: 4px solid var(--gold);
+  box-shadow: 
+    -20px 20px 50px rgba(0,0,0,0.8),
+    0 0 30px var(--gold-glow);
+  transform-style: preserve-3d;
+}
+
+/* The Magic SVG Walls */
+.maze-svg-walls {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 8px var(--gold));
+  color: var(--gold); /* This colors the 'currentColor' in your SVG */
+}
+
+.maze-svg-walls line {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: drawWalls 3s forwards ease-in-out;
+}
+
+@keyframes drawWalls {
+  to { stroke-dashoffset: 0; }
+}
+
+/* --- PLAYER AVATARS (Standing Upright) --- */
+.player-avatar {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* COUNTER-ROTATE: This makes the emoji stand 'up' while the floor stays flat */
+  transform: rotateZ(45deg) rotateX(-45deg) translateY(-20px);
+  transform-origin: bottom center;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));
+}
+
+.player-avatar .emoji {
+  font-size: 2.5rem;
+  z-index: 10;
+}
+
+/* Shadow beneath the player on the floor */
+.player-avatar::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  width: 20px;
+  height: 10px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 50%;
+  transform: rotateX(90deg);
+  filter: blur(4px);
+}
+
+.me-indicator {
+  position: absolute;
+  top: -25px;
+  background: var(--gold);
+  color: black;
+  font-family: 'MedievalSharp', cursive;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  white-space: nowrap;
+}
