@@ -299,18 +299,128 @@ body {
 .right { grid-area: right; }
 
 /* Mobile Container Styling */
+/* --- MOBILE LAYOUT --- */
 .mobile-app-container {
-  display: flex !important; /* Force visibility */
-  background: #050505;
   height: 100vh;
-  width: 100vw;
   display: flex;
   flex-direction: column;
-  color: white;
+  background: #0f0f0f;
   overflow: hidden;
-  font-family: 'Cinzel Decorative', serif;
 }
 
+.mobile-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 80px; /* Room for nav */
+}
+
+/* --- 3D DICE --- */
+.scene {
+  width: 100px;
+  height: 100px;
+  perspective: 600px;
+  margin-bottom: 60px;
+}
+
+.dice {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.face {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: #1a1a1a;
+  border: 2px solid var(--gold);
+  color: var(--gold);
+  line-height: 100px;
+  text-align: center;
+  font-size: 40px;
+  font-weight: bold;
+  box-shadow: inset 0 0 15px rgba(212, 175, 55, 0.2);
+}
+
+.front  { transform: rotateY(0deg) translateZ(50px); }
+.back   { transform: rotateY(180deg) translateZ(50px); }
+.right  { transform: rotateY(90deg) translateZ(50px); }
+.left   { transform: rotateY(-90deg) translateZ(50px); }
+.top    { transform: rotateX(90deg) translateZ(50px); }
+.bottom { transform: rotateX(-90deg) translateZ(50px); }
+
+/* --- KEYBOARD D-PAD --- */
+.d-pad-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.d-pad-row {
+  display: flex;
+  gap: 8px;
+}
+
+.dir-btn {
+  width: 70px;
+  height: 70px;
+  background: #222;
+  border: 1px solid #444;
+  border-bottom: 4px solid #000; /* Keycap depth */
+  border-radius: 8px;
+  color: #eee;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 0 #111;
+  transition: all 0.1s;
+  touch-action: manipulation;
+}
+
+.dir-btn:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+  background: var(--gold);
+  color: black;
+}
+
+/* --- FIXED BOTTOM NAV --- */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  height: 75px;
+  background: #111;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding-bottom: env(safe-area-inset-bottom); /* For iPhone Notch */
+}
+
+.mobile-nav button {
+  background: none;
+  border: none;
+  color: #666;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: 0.3s;
+}
+
+.mobile-nav button.active {
+  color: var(--gold);
+}
+
+.mobile-nav span { font-size: 1.5rem; }
+.mobile-nav small { font-size: 0.6rem; text-transform: uppercase; margin-top: 4px; }
 /* 1. Top Stats Bar */
 .mobile-stats-bar {
   display: flex;
@@ -369,35 +479,6 @@ body {
   100% { transform: rotate(0deg) scale(1); }
 }
 
-/* 3. Bottom Navigation */
-.mobile-nav {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  background: var(--glass);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid var(--border);
-  height: 80px;
-  padding-bottom: 15px; /* Adjust for safe areas on iPhone */
-}
-
-.mobile-nav button {
-  background: none;
-  border: none;
-  color: #666;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transition: 0.3s;
-}
-
-.mobile-nav button span { font-size: 1.5rem; }
-.mobile-nav button small { font-size: 0.6rem; text-transform: uppercase; margin-top: 4px; }
-
-.mobile-nav button.active {
-  color: var(--gold);
-  text-shadow: 0 0 10px var(--gold-glow);
-}
 
 /* Tab Panels */
 .tab-panel {

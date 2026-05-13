@@ -159,68 +159,52 @@ if (view === 'character-creation') {
 }
   // SCREEN 1: MOBILE CONTROLLER
   if (view === 'mobile') {
-    
     return (
       <div className="mobile-app-container">
-        <header className="mobile-stats-bar">
-          <div className="stat-pill hp">❤️ 10/10</div>
-          <div className="stat-pill mp">✨ 5/5</div>
-          <div className="stat-pill xp">⭐ LVL 1</div>
-        </header>
         <main className="mobile-content">
-    
-        {activeTab === 'controller' && (
-          <div className="controller-view fade-in">
-            <div className="d20-container" onClick={rollDice}>
-              <div className={`d20 ${isRolling ? 'rolling' : ''}`}>
-                <span className="roll-number">{rollResult}</span>
+          {activeTab === 'controller' && (
+            <div className="controller-view">
+              {/* 3D DICE SCENE */}
+              <div className="scene" onClick={rollDice}>
+                <div className="dice" style={{ 
+                  transform: `rotateX(${diceRotation.x}deg) rotateY(${diceRotation.y}deg)` 
+                }}>
+                  <div className="face front">1</div>
+                  <div className="face back">6</div>
+                  <div className="face right">3</div>
+                  <div className="face left">4</div>
+                  <div className="face top">2</div>
+                  <div className="face bottom">5</div>
+                </div>
               </div>
-              <p className="dice-hint">Tap to Roll D20</p>
-            </div>
-            
-            <div className="d-pad">
-              <button className="dir-btn up" onClick={() => sendMove('North')}>▲</button>
-              <button className="dir-btn left" onClick={() => sendMove('West')}>◀</button>
-              <button className="dir-btn right" onClick={() => sendMove('East')}>▶</button>
-              <button className="dir-btn down" onClick={() => sendMove('South')}>▼</button>
-            </div>
-          </div>
-        )}
 
-        {activeTab === 'character' && (
-          <div className="tab-panel fade-in">
-            <h2 className="tab-title">Character Sheet</h2>
-            <div className="sheet-row"><span>Strength</span><strong>14</strong></div>
-            <div className="sheet-row"><span>Agility</span><strong>12</strong></div>
-            <div className="sheet-row"><span>Wisdom</span><strong>18</strong></div>
-          </div>
-        )}
-
-        {activeTab === 'inventory' && (
-          <div className="tab-panel fade-in">
-            <h2 className="tab-title">Inventory</h2>
-            <div className="inv-grid">
-              <div className="inv-slot">🗡️</div>
-              <div className="inv-slot">🧪</div>
-              <div className="inv-slot">🕯️</div>
-              <div className="inv-slot empty"></div>
+              {/* KEYBOARD STYLE D-PAD */}
+              <div className="d-pad-wrapper">
+                <button className="dir-btn up" onClick={() => sendMove('North')}>▲</button>
+                <div className="d-pad-row">
+                  <button className="dir-btn left" onClick={() => sendMove('West')}>◀</button>
+                  <button className="dir-btn down" onClick={() => sendMove('South')}>▼</button>
+                  <button className="dir-btn right" onClick={() => sendMove('East')}>▶</button>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
-
-        {activeTab === 'tome' && (
-          <div className="tab-panel fade-in">
-            <h2 className="tab-title">The Tome</h2>
-            <div className="log-entry">You entered the Labyrinth.</div>
-            <div className="log-entry">The air feels cold...</div>
-          </div>
-        )}
+          )}
         </main>
+
+        {/* FIXED BOTTOM NAV */}
         <nav className="mobile-nav">
-          <button onClick={() => setActiveTab('controller')} className={activeTab === 'controller' ? 'active' : ''}><span>🎲</span><small>Play</small></button>
-          <button onClick={() => setActiveTab('character')} className={activeTab === 'character' ? 'active' : ''}><span>👤</span><small>Hero</small></button>
-          <button onClick={() => setActiveTab('inventory')} className={activeTab === 'inventory' ? 'active' : ''}><span>🎒</span><small>Items</small></button>
-          <button onClick={() => setActiveTab('tome')} className={activeTab === 'tome' ? 'active' : ''}><span>📜</span><small>Tome</small></button>
+          <button onClick={() => setActiveTab('controller')} className={activeTab === 'controller' ? 'active' : ''}>
+            <span>🎲</span><small>Play</small>
+          </button>
+          <button onClick={() => setActiveTab('character')} className={activeTab === 'character' ? 'active' : ''}>
+            <span>👤</span><small>Hero</small>
+          </button>
+          <button onClick={() => setActiveTab('inventory')} className={activeTab === 'inventory' ? 'active' : ''}>
+            <span>🎒</span><small>Items</small>
+          </button>
+          <button onClick={() => setActiveTab('tome')} className={activeTab === 'tome' ? 'active' : ''}>
+            <span>📜</span><small>Tome</small>
+          </button>
         </nav>
       </div>
     );
@@ -548,5 +532,37 @@ const MazeGeometry = () => (
     <line x1="322" y1="2" x2="322" y2="322" />
     </g>
 );
+const [diceRotation, setDiceRotation] = useState({ x: 0, y: 0 });
 
+const rollDice = () => {
+  if (isRolling) return;
+  setIsRolling(true);
+
+  // Generate a random result
+  const result = Math.floor(Math.random() * 6) + 1;
+  
+  // Define rotations for each face [x, y]
+  const rotations = {
+    1: [0, 0],      // Front
+    6: [0, 180],    // Back
+    3: [0, -90],    // Right
+    4: [0, 90],     // Left
+    2: [-90, 0],    // Top
+    5: [90, 0],     // Bottom
+  };
+
+  // Add 720 degrees (2 full spins) for extra "tumble" effect
+  const [targetX, targetY] = rotations[result];
+  setDiceRotation({ 
+    x: targetX + 720, 
+    y: targetY + 720 
+  });
+
+  setTimeout(() => {
+    setRollResult(result);
+    setIsRolling(false);
+    // Reset spin coordinates silently for the next roll
+    setDiceRotation({ x: targetX, y: targetY });
+  }, 1000);
+};
 export default App;
