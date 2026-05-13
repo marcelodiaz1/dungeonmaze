@@ -552,3 +552,81 @@ body {
   font-weight: bold;
   white-space: nowrap;
 }
+.creation-screen {
+  background: #050505;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.creation-glass {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  padding: 30px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.name-input {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  padding: 15px;
+  border-radius: 10px;
+  color: white;
+  font-family: 'MedievalSharp', cursive;
+  font-size: 1.2rem;
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.class-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 10px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+.class-card.selected {
+  border-color: var(--class-color);
+  background: rgba(255,255,255,0.1);
+  box-shadow: 0 0 15px var(--class-color);
+  transform: scale(1.05);
+}
+
+.class-emoji { font-size: 1.8rem; }
+.class-label { 
+  font-size: 0.6rem; 
+  text-transform: uppercase; 
+  color: #888; 
+  margin-top: 5px; 
+}
+
+.join-btn {
+  width: 100%;
+  padding: 15px;
+  background: var(--gold);
+  border: none;
+  border-radius: 10px;
+  font-family: 'Uncial Antiqua', cursive;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.join-btn:disabled { opacity: 0.2; }

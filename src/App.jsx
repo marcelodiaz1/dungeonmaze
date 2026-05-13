@@ -14,17 +14,39 @@ function App() {
   const [isRolling, setIsRolling] = useState(false);
   const [rollResult, setRollResult] = useState(20);
   const socketRef = useRef();
+// Add these to your state declarations at the top
+const [view, setView] = useState('loading'); 
+const [charName, setCharName] = useState('');
+const [selectedClass, setSelectedClass] = useState(null);
 
+const classes = [
+  { id: 'barbarian', emoji: '🪓', color: '#e7623e' },
+  { id: 'bard', emoji: '🪕', color: '#ab6dac' },
+  { id: 'cleric', emoji: '🛡️', color: '#91a1b2' },
+  { id: 'druid', emoji: '🍃', color: '#7a853b' },
+  { id: 'fighter', emoji: '⚔️', color: '#7f513e' },
+  { id: 'monk', emoji: '👊', color: '#5167cc' },
+  { id: 'paladin', emoji: '✨', color: '#b59e54' },
+  { id: 'ranger', emoji: '🏹', color: '#24592f' },
+  { id: 'rogue', emoji: '🗡️', color: '#555752' },
+  { id: 'sorcerer', emoji: '🔥', color: '#992e2e' },
+  { id: 'warlock', emoji: '👁️', color: '#583377' },
+  { id: 'wizard', emoji: '🧙‍♂️', color: '#2a50a1' },
+  
+];
   useEffect(() => {
     // 1. DEVICE & ROUTE DETECTION
     const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const isJoinLink = window.location.pathname.includes('/join');
 
     if (isMobileDevice || isJoinLink) {
-      setView('mobile');
+          setView('character-creation');
     } else {
       setView('lobby');
     }
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent) || window.location.pathname.includes('/join');
+  
+
 
     // 2. SOCKET SETUP
     socketRef.current = io(SERVER_URL, { transports: ['websocket'] });
@@ -79,9 +101,62 @@ const sendMove = (dir) => {
   };
 
   // --- RENDER LOGIC (THE 3 SCREENS) ---
+if (view === 'character-creation') {
+  const handleJoinParty = () => {
+    if (!charName || !selectedClass) return;
+    
+    // Send character data to server
+    socketRef.current.emit('player-details', {
+      roomId: ROOM_ID,
+      name: charName,
+      classType: selectedClass.id,
+      emoji: selectedClass.emoji
+    });
+    
+    setView('mobile'); // Move to the controller
+  };
 
+  return (
+    <div className="creation-screen">
+      <div className="creation-glass">
+        <h2 className="creation-title">MANIFEST HERO</h2>
+        
+        <input 
+          type="text" 
+          placeholder="Enter Hero Name..." 
+          className="name-input"
+          value={charName}
+          onChange={(e) => setCharName(e.target.value)}
+        />
+
+        <div className="class-grid">
+          {classes.map(c => (
+            <button 
+              key={c.id}
+              className={`class-card ${selectedClass?.id === c.id ? 'selected' : ''}`}
+              onClick={() => setSelectedClass(c)}
+              style={{ '--class-color': c.color }}
+            >
+              <span className="class-emoji">{c.emoji}</span>
+              <small className="class-label">{c.id}</small>
+            </button>
+          ))}
+        </div>
+
+        <button 
+          className="join-btn" 
+          disabled={!charName || !selectedClass}
+          onClick={handleJoinParty}
+        >
+          ENTER THE LABYRINTH
+        </button>
+      </div>
+    </div>
+  );
+}
   // SCREEN 1: MOBILE CONTROLLER
   if (view === 'mobile') {
+    
     return (
       <div className="mobile-app-container">
         <header className="mobile-stats-bar">

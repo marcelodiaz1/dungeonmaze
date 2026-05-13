@@ -58,6 +58,16 @@ io.on('connection', (socket) => {
       }
     }
   });
+  socket.on('player-details', ({ roomId, name, classType, emoji }) => {
+    if (players[roomId] && players[roomId][socket.id]) {
+        players[roomId][socket.id].name = name;
+        players[roomId][socket.id].classType = classType;
+        players[roomId][socket.id].emoji = emoji;
+        
+        // Broadcast the update so the Desktop Lobby shows the new info
+        io.to(roomId).emit('update-players', players[roomId]);
+    }
+});
 });
 
 const PORT = process.env.PORT || 3001;
