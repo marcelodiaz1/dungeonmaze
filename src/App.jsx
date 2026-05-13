@@ -1,99 +1,77 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { QRCodeSVG } from 'qrcode.react'; 
+import { QRCodeSVG } from 'qrcode.react';
 import './App.css';
 
-// UPDATE THIS to your hosted backend (Railway/Render)
 const SERVER_URL = "https://your-backend-service.com"; 
 const ROOM_ID = "dnd-maze-1";
 
 function App() {
   const [view, setView] = useState('lobby');
-  const [players, setPlayers] = useState([]); 
-  const [playerPos, setPlayerPos] = useState({ x: 162, y: 162 });
-  const [messages, setMessages] = useState(["The circular walls pulse with magic..."]);
+  const [allPlayers, setAllPlayers] = useState({});
   const socketRef = useRef();
 
-  const currentUrl = `${window.location.origin}/join`;
-
   useEffect(() => {
-    // 1. Determine view on load
+    // 1. Check if this is the phone controller
     if (window.location.pathname.includes('/join')) {
       setView('mobile');
     }
 
-    // 2. Initialize Socket
     socketRef.current = io(SERVER_URL);
     socketRef.current.emit('join-room', ROOM_ID);
 
-    // 3. Listeners
-    socketRef.current.on('update-player-list', (list) => {
-      setPlayers(list);
+    // 2. LISTEN: When the host starts the game, everyone moves to 'desktop'
+    socketRef.current.on('game-started', () => {
+      setView('desktop');
     });
 
-    socketRef.current.on('player-moved', (direction) => {
-      setPlayerPos(prev => {
-        let { x, y } = prev;
-        const step = 8;
-        if (direction === 'North') y -= step;
-        if (direction === 'South') y += step;
-        if (direction === 'West') x -= step;
-        if (direction === 'East') x += step;
-        return (x > 0 && x < 324 && y > 0 && y < 324) ? { x, y } : prev;
-      });
+    socketRef.current.on('update-players', (playersMap) => {
+      setAllPlayers(playersMap);
+    });
+
+    socketRef.current.on('player-moved', ({ id, pos }) => {
+      setAllPlayers(prev => ({
+        ...prev,
+        [id]: { ...prev[id], ...pos }
+      }));
     });
 
     return () => socketRef.current.disconnect();
   }, []);
 
-  const joinGame = () => setView('desktop');
-  const sendMove = (dir) => socketRef.current?.emit('send-move', { roomId: ROOM_ID, direction: dir });
+  // Tell the server to start the game for everyone
+  const handleStartAdventure = () => {
+    socketRef.current.emit('start-game', ROOM_ID);
+    setView('desktop'); // Move the local screen immediately
+  };
 
-  // --- VIEW 1: LOBBY ---
+  const sendMove = (dir) => socketRef.current.emit('send-move', { roomId: ROOM_ID, direction: dir });
+
+  // --- VIEW: LOBBY ---
   if (view === 'lobby') {
     return (
       <div className="lobby-screen">
         <div className="lobby-container">
           <section className="lobby-sidebar">
             <div className="qr-container">
-              <QRCodeSVG value={currentUrl} size={180} includeMargin={true} />
-              <p className="qr-hint">Scan to Join</p>
+              <QRCodeSVG value={`${window.location.origin}/join`} size={180} />
             </div>
-            <div className="url-display">{currentUrl}</div>
           </section>
-
           <main className="lobby-main">
-            <header className="lobby-header">
-              <h2 className="subtitle">The Ancient Labyrinth</h2>
-              <h1 className="title">DUNGEON LOBBY</h1>
-            </header>
-
-            <div className="player-gallery">
-              <h3>Adventurers Assembled ({players.length})</h3>
-              <div className="avatar-list">
-                {players.length > 0 ? (
-                  players.map((p, i) => (
-                    <div key={i} className="mini-avatar pulse">
-                      <span className="emoji">🧙‍♂️</span>
-                      <span className="player-tag">Player {i + 1}</span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="waiting">Waiting for players...</p>
-                )}
-              </div>
+            <h1 className="title">DUNGEON LOBBY</h1>
+            <div className="avatar-list">
+              {Object.keys(allPlayers).map((id, i) => (
+                <div key={id} className="mini-avatar pulse">🧙‍♂️<span>Player {i+1}</span></div>
+              ))}
             </div>
-
-            <button className="action-btn-large" onClick={joinGame}>
-              START ADVENTURE
-            </button>
+            <button className="action-btn-large" onClick={handleStartAdventure}>START ADVENTURE</button>
           </main>
         </div>
       </div>
     );
   }
 
-  // --- VIEW 2: MOBILE CONTROLLER ---
+  // --- VIEW: MOBILE ---
   if (view === 'mobile') {
     return (
       <div className="mobile-controller">
@@ -107,42 +85,26 @@ function App() {
     );
   }
 
-  // --- VIEW 3: DESKTOP BOARD ---
+  // --- VIEW: DESKTOP MAZE ---
   return (
     <div className="desktop-board">
       <div className="game-screen">
-        <div className="maze-container">
-          <svg viewBox="0 0 324 324" className="maze-svg-walls">
-             <MazeGeometry />
-          </svg>
-
-          {/* RENDER EVERY PLAYER IN THE MAP */}
-         {Object.entries(allPlayers).map(([id, player]) => (
-            <div 
-              key={id}
-              className="player-avatar" 
-              style={{ 
-                // Mapping 324 coordinate system to 100%
-                left: `${(player.x / 324) * 100}%`, 
-                top: `${(player.y / 324) * 100}%` 
-              }}
-            >
-              <span className="emoji">🧙‍♂️</span>
-              <span className="player-label">P-{id.slice(0,3)}</span>
-            </div>
-          ))}
+        <div className="isometric-wrapper">
+          <div className="maze-container">
+            <svg viewBox="0 0 324 324" className="maze-svg-walls">
+              <g className="wall-top-layer"><MazeGeometry /></g>
+            </svg>
+            {Object.entries(allPlayers).map(([id, p]) => (
+              <div key={id} className="player-avatar" style={{ left: `${(p.x/324)*100}%`, top: `${(p.y/324)*100}%` }}>
+                <span className="emoji">🧙‍♂️</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-      <aside className="dm-log">
-        <h3>Dungeon Master</h3>
-        <div className="messages">
-          {messages.map((m, i) => <p key={i} className="msg">{m}</p>)}
-        </div>
-      </aside>
     </div>
   );
-}
-
+} 
 const MazeGeometry = () => (
     <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
        <line x1="2" y1="2" x2="146" y2="2" />
