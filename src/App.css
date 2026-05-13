@@ -445,3 +445,14 @@ body {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+.d-pad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.d-pad-horizontal {
+  display: flex;
+  gap: 40px; /* Space between left and right arrows */
+}
