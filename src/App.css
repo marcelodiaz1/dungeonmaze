@@ -1,6 +1,14 @@
 /* --- 1. FONTS & THEME VARIABLES --- */
 @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Uncial+Antiqua&family=MedievalSharp&display=swap');
-
+/* Add this to the top of App.css */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #000; /* Prevents white flash */
+  overflow: hidden;
+}
 :root {
   --gold: #d4af37;
   --gold-glow: rgba(212, 175, 55, 0.5);
@@ -33,12 +41,12 @@ body {
 }
 
 .lobby-screen {
-  width: 100%;
+  width: 100vw;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start; /* Prevents content being cut off at top */
+  justify-content: center; /* Prevents content being cut off at top */
   padding: 80px 20px;
   background: radial-gradient(circle at center, #1a0f00 0%, #050505 100%);
   background-attachment: fixed;
@@ -546,70 +554,157 @@ body {
 
 
 /* --- ISOMETRIC GAME BOARD --- */
-.desktop-board {
+.desktop-dashboard {
+  display: flex;
   width: 100vw;
   height: 100vh;
-  background: radial-gradient(circle at center, #0a0a0a 0%, #000 100%);
+  background: #050505;
+  color: var(--gold);
+  overflow: hidden;
+}
+
+/* --- LEFT SIDEBAR (25% width) --- */
+.sidebar {
+  width: 25%;
+  height: 100%;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border-right: 2px solid rgba(212, 175, 55, 0.3);
+  box-sizing: border-box;
+}
+
+.panel {
+  background: rgba(20, 20, 20, 0.8);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  padding: 15px;
+}
+
+.minimap-panel { flex: 1; display: flex; flex-direction: column; }
+.mini-viewport { 
+  position: relative; 
+  flex: 1; 
+  background: #000; 
+  border: 1px solid #333;
+}
+.mini-maze { width: 100%; height: 100%; opacity: 0.5; }
+.dot {
+  position: absolute;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px currentColor;
+}
+
+.dm-panel { height: 30%; background: linear-gradient(to bottom, #1a0505, #000); }
+.dm-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.dm-icon { font-size: 2.5rem; filter: drop-shadow(0 0 5px red); }
+.dm-dialogue { font-style: italic; color: #ccc; line-height: 1.4; }
+
+/* --- MAIN STAGE (75% width) --- */
+.main-stage {
+  flex: 1;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  perspective: 1200px; /* Crucial for 3D depth */
+  perspective: 1500px; /* Stronger perspective for the big map */
 }
 
-.game-screen {
-  position: relative;
-  /* Tilts the entire board */
-  transform: rotateX(45deg) rotateZ(-45deg);
-  transform-style: preserve-3d;
-  transition: transform 0.5s ease;
-}
+.game-screen-wrapper {
+  width: 90%;
+  height: 90%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+} 
 
+/* Container that holds the SVG */
 .maze-container {
   position: relative;
-  width: 600px; /* Increased size for desktop impact */
-  height: 600px;
-  background: rgba(20, 20, 20, 0.8);
-  border: 4px solid var(--gold);
-  box-shadow: 
-    -20px 20px 50px rgba(0,0,0,0.8),
-    0 0 30px var(--gold-glow);
+  width: 100%;
+  height: 100%;
+  transform: rotateX(60deg) rotateZ(45deg); /* Isometric Angle */
+  transform-style: preserve-3d;
+  perspective: 1000px;
+  transition: transform 0.5s ease-out;
+}
+
+.maze-svg-walls {
+  overflow: visible;
+  width: 100%;
+  height: 100%;
   transform-style: preserve-3d;
 }
 
-/* The Magic SVG Walls */
-.maze-svg-walls {
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(0 0 8px var(--gold));
-  color: var(--gold); /* This colors the 'currentColor' in your SVG */
+/* The 3D Wall Face */
+.wall-face {
+  fill: #4a5568; /* Stone grey */
+  stroke: #2d3748;
+  stroke-width: 0.5;
 }
 
-.maze-svg-walls line {
-  stroke-dasharray: 1000;
-  stroke-dashoffset: 1000;
-  animation: drawWalls 3s forwards ease-in-out;
+.wall-face.horizontal {
+  fill: #4a5568;
 }
 
-@keyframes drawWalls {
-  to { stroke-dashoffset: 0; }
+.wall-face.vertical {
+  fill: #2d3748; /* Slightly darker for shading effect */
 }
 
-/* --- PLAYER AVATARS (Standing Upright) --- */
+/* Floor footprint */
+.wall-floor-line {
+  stroke: rgba(0, 0, 0, 0.2);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* Ensure avatars stay upright in the 3D world */
 .player-avatar {
   position: absolute;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* COUNTER-ROTATE: This makes the emoji stand 'up' while the floor stays flat */
-  transform: rotateZ(45deg) rotateX(-45deg) translateY(-20px);
-  transform-origin: bottom center;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));
+  transform-style: preserve-3d;
+  /* Counter-rotate the avatar so it faces the "camera" */
+  transform: translate(-50%, -50%) rotateZ(-45deg) rotateX(-60deg);
+  pointer-events: none;
+}
+.game-screen {
+  /* Perspective container */
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.maze-container.zoomed-focus {
+  width: 800px;
+  height: 800px;
+  background: #000;
+  border: 4px solid var(--gold);
+  
+  /* Zoom in 3x and tilt */
+  /* transformOrigin is handled by React inline style */
+  transform: rotateX(50deg) rotateZ(-40deg) scale(3);
+  
+  transition: transform-origin 0.8s ease-out; /* Smooth camera sliding */
+  transform-style: preserve-3d;
+  overflow: visible; /* Let player tags pop out if they are near the edge */
+}
+
+/* Optional: Add a Vignette to hide the 'edges' of the zoom */
+.game-screen-wrapper {
+  position: relative;
+  width: 90%;
+  height: 90%;
+  overflow: hidden; /* Clips the scaled-up map */
+  mask-image: radial-gradient(circle, black 40%, transparent 95%);
+  -webkit-mask-image: radial-gradient(circle, black 40%, transparent 95%);
+}
+
+.player-avatar {
+  position: absolute;
+  /* Adjust scale here so icons don't get too huge when the map scales */
+  transform: translate(-50%, -100%) rotateZ(40deg) rotateX(-50deg) scale(0.5);
+}
 .player-avatar .emoji {
   font-size: 2.5rem;
   z-index: 10;
