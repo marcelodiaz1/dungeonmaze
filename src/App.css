@@ -1,14 +1,6 @@
 /* --- 1. FONTS & THEME VARIABLES --- */
 @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Uncial+Antiqua&family=MedievalSharp&display=swap');
-/* Add this to the top of App.css */
-html, body, #root {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  background-color: #000; /* Prevents white flash */
-  overflow: hidden;
-}
+
 :root {
   --gold: #d4af37;
   --gold-glow: rgba(212, 175, 55, 0.5);
@@ -605,76 +597,89 @@ body {
 
 /* --- MAIN STAGE (75% width) --- */
 .main-stage {
-  flex: 1;
   position: relative;
+    width: 100%;
+  overflow: hidden;
+  background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 1500px; /* Stronger perspective for the big map */
 }
-
 .game-screen-wrapper {
-  width: 90%;
-  height: 90%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-} 
-
-/* Container that holds the SVG */
-.maze-container {
-  position: relative;
   width: 100%;
   height: 100%;
-  transform: rotateX(60deg) rotateZ(45deg); /* Isometric Angle */
+  perspective: 1500px; /* Increased for a more dramatic 3D effect */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; 
+}
+
+.maze-camera {
+  /* Increased scale from 1 to 2.5 for a "Zoomed" look */
+  transform: rotateX(55deg) rotateZ(-45deg) scale(2.5); 
   transform-style: preserve-3d;
-  perspective: 1000px;
-  transition: transform 0.5s ease-out;
+  /* Smooth transition when the camera origin shifts */
+  transition: transform-origin 0.5s cubic-bezier(0.25, 1, 0.5, 1); 
+}
+
+.maze-container {
+  position: relative;
+  width: 600px; /* Base size; the scale(2.5) makes it effectively 1500px */
+  height: 600px;
+  background: #080808;
+  border: 2px solid #d4af37;
+  transform-style: preserve-3d;
 }
 
 .maze-svg-walls {
-  overflow: visible;
   width: 100%;
   height: 100%;
-  transform-style: preserve-3d;
+  stroke: #d4af37;
+  filter: drop-shadow(0 0 2px #d4af37);
 }
 
-/* The 3D Wall Face */
-.wall-face {
-  fill: #4a5568; /* Stone grey */
-  stroke: #2d3748;
-  stroke-width: 0.5;
-}
-
-.wall-face.horizontal {
-  fill: #4a5568;
-}
-
-.wall-face.vertical {
-  fill: #2d3748; /* Slightly darker for shading effect */
-}
-
-/* Floor footprint */
-.wall-floor-line {
-  stroke: rgba(0, 0, 0, 0.2);
-  stroke-width: 2;
-  stroke-linecap: round;
-}
-
-/* Ensure avatars stay upright in the 3D world */
-.player-avatar {
+/* --- The Player Avatar (Standing Upright) --- */
+.player-avatar-3d {
   position: absolute;
   transform-style: preserve-3d;
-  /* Counter-rotate the avatar so it faces the "camera" */
-  transform: translate(-50%, -50%) rotateZ(-45deg) rotateX(-60deg);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   pointer-events: none;
 }
-.game-screen {
-  /* Perspective container */
-  transform-style: preserve-3d;
-  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+.avatar-billboard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Counter-rotation: Cancels out the map's tilt so emoji stands up */
+  transform: translate(-50%, -100%) rotateZ(45deg) rotateX(-55deg);
+  transform-origin: bottom center;
 }
 
+.emoji {
+  font-size: 40px;
+  filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5));
+}
+
+.player-name-tag {
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid #d4af37;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  margin-bottom: 4px;
+  color: white;
+}
+
+/* --- Lighting Effect --- */
+.main-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.8) 100%);
+  pointer-events: none;
+} 
 .maze-container.zoomed-focus {
   width: 800px;
   height: 800px;
@@ -690,25 +695,7 @@ body {
   overflow: visible; /* Let player tags pop out if they are near the edge */
 }
 
-/* Optional: Add a Vignette to hide the 'edges' of the zoom */
-.game-screen-wrapper {
-  position: relative;
-  width: 90%;
-  height: 90%;
-  overflow: hidden; /* Clips the scaled-up map */
-  mask-image: radial-gradient(circle, black 40%, transparent 95%);
-  -webkit-mask-image: radial-gradient(circle, black 40%, transparent 95%);
-}
-
-.player-avatar {
-  position: absolute;
-  /* Adjust scale here so icons don't get too huge when the map scales */
-  transform: translate(-50%, -100%) rotateZ(40deg) rotateX(-50deg) scale(0.5);
-}
-.player-avatar .emoji {
-  font-size: 2.5rem;
-  z-index: 10;
-}
+  
 
 /* Shadow beneath the player on the floor */
 .player-avatar::after {
