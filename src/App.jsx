@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
 import './App.css'; 
+
 const SERVER_URL = "https://dungeonmaze.onrender.com"; 
 const ROOM_ID = "dnd-maze-1"; 
 const CLASSES = [
@@ -28,37 +29,28 @@ function App() {
   const [diceRotation, setDiceRotation] = useState({ x: 0, y: 0 });
   const [charName, setCharName] = useState('');
   const [selectedClass, setSelectedClass] = useState(null);
+  const [dmText, setDmText] = useState("The labyrinth awaits your first step...");
   
   const socketRef = useRef();
-const [dmText, setDmText] = useState("The labyrinth awaits your first step...");
 
-useEffect(() => {
-  if (!socket) return;
-
-  socket.on('dm-message', (data) => {
-    // 1. Update the UI text
-    setDmText(data.text);
-
-    // 2. Make the DM speak
-    const speech = new SpeechSynthesisUtterance(data.text);
+  // Helper inside component scope to find map bounds or default center
+  const getPartyCenter = () => {
+    const playersArray = Object.values(allPlayers);
+    if (playersArray.length === 0) return { x: 50, y: 50 }; // Default percentage center
     
-    // Customizing the "Evil DM" voice
-    speech.pitch = 0.5; // Deep voice
-    speech.rate = 0.9;  // Slightly slow and menacing
-    speech.volume = 1;
+    const sumX = playersArray.reduce((acc, p) => acc + p.x, 0);
+    const sumY = playersArray.reduce((acc, p) => acc + p.y, 0);
     
-    // Optional: Pick a specific voice (like a narrator)
-    const voices = window.speechSynthesis.getVoices();
-    const narrator = voices.find(v => v.name.includes('Google UK English Male')) || voices[0];
-    speech.voice = narrator;
+    return {
+      x: (sumX / playersArray.length / 324) * 100,
+      y: (sumY / playersArray.length / 324) * 100
+    };
+  };
 
-    window.speechSynthesis.speak(speech);
-  });
+  const center = getPartyCenter();
 
-  return () => socket.off('dm-message');
-}, [socket]);
+  // --- EFFECT 1: Handle Socket Initialization & Routing ---
   useEffect(() => {
-    
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.location.pathname.includes('/join');
     
     socketRef.current = io(SERVER_URL, { transports: ['websocket'] });
@@ -72,94 +64,100 @@ useEffect(() => {
     });
 
     socketRef.current.on('game-started', () => {
-      if (!isMobile) setView('desktop');
+      setView(isMobile ? 'mobile' : 'desktop');
     });
 
     setView(isMobile ? 'character-creation' : 'lobby');
 
-    return () => socketRef.current.disconnect();
+    return () => {
+      if (socketRef.current) socketRef.current.disconnect();
+    };
   }, []);
 
-  const rollDice = () => {
-    if (isRolling) return;
-    setIsRolling(true);
+  // --- EFFECT 2: Dungeon Master Voice Processing ---
+  useEffect(() => {
+    const currentSocket = socketRef.current;
+    if (!currentSocket) return;
 
-    const result = Math.floor(Math.random() * 6) + 1;
-    const rotations = {
-      1: [0, 0], 6: [0, 180], 3: [0, -90], 
-      4: [0, 90], 2: [-90, 0], 5: [90, 0],
+    const handleDmMessage = (data) => {
+      setDmText(data.text);
+
+      // Web Speech Synth integration
+      const speech = new SpeechSynthesisUtterance(data.text);
+      speech.pitch = 0.5; 
+      speech.rate = 0.9;  
+      speech.volume = 1;
+      
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) {
+        const narrator = voices.find(v => v.name.includes('Google UK English Male')) || voices[0];
+        speech.voice = narrator;
+      }
+      window.speechSynthesis.speak(speech);
     };
 
-    const [targetX, targetY] = rotations[result];
-    setDiceRotation({ x: targetX + 720, y: targetY + 720 });
+    currentSocket.on('dm-message', handleDmMessage);
 
-    setTimeout(() => {
-      setRollResult(result);
-      setIsRolling(false);
-      setDiceRotation({ x: targetX, y: targetY }); 
-    }, 1000);
-  };
+    return () => {
+      currentSocket.off('dm-message', handleDmMessage);
+    };
+  }, [view]);
 
+  // --- HANDLERS ---
   const handleJoinParty = () => {
-    if (!charName || !selectedClass) return;
+    if (!charName || !selectedClass || !socketRef.current) return;
+
     socketRef.current.emit('player-details', {
       roomId: ROOM_ID,
       name: charName,
       classType: selectedClass.id,
       emoji: selectedClass.emoji
     });
-    setView('mobile');
+
+    // Mobile stays in waiting posture or moves forward based on server events
+    setView('mobile'); 
   };
-  const getPartyCenter = () => {
-  const players = Object.values(allPlayers);
-  if (players.length === 0) return { x: 50, y: 50 };
-  
-  const avgX = players.reduce((sum, p) => sum + (p.x / 324) * 100, 0) / players.length;
-  const avgY = players.reduce((sum, p) => sum + (p.y / 324) * 100, 0) / players.length;
-  return { x: avgX, y: avgY };
-};
-const handleVoiceCommand = () => {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) return alert("Speech not supported");
 
-  const recognition = new SpeechRecognition();
-  recognition.start();
+  const handleVoiceCommand = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return alert("Speech recognition not supported in this browser environment.");
 
-  recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
-    // Send what you said to the server
-    socket.emit('player-chat', { roomId, message: transcript });
+    const recognition = new SpeechRecognition();
+    recognition.start();
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      if (socketRef.current) {
+        socketRef.current.emit('player-chat', { roomId: ROOM_ID, message: transcript });
+      }
+    };
   };
-};
-const center = getPartyCenter();
-const PlayerZoom = ({ p }) => {
-  if (!p) return <div className="empty-slot">Waiting for Seeker...</div>;
 
-  // Calculate percentage for transform-origin
-  const xPct = (p.x / 324) * 100;
-  const yPct = (p.y / 324) * 100;
-
-  return (
-    <div className="zoom-container" style={{ transformOrigin: `${xPct}% ${yPct}%` }}>
-      <svg viewBox="0 0 324 324" className="maze-svg-walls">
-        <MazeGeometry />
-      </svg>
-      <div className="player-avatar" style={{ 
-          left: `${xPct}%`, 
-          top: `${yPct}%`,
-          transform: 'translate(-50%, -50%) rotateZ(30deg) rotateX(-30deg)' // Counter-rotate icon so it stays upright
-        }}>
-        <span className="emoji">{p.emoji}</span>
-      </div>
-    </div>
-  );
-};
   const sendMove = (dir) => {
-    socketRef.current.emit('send-move', { roomId: ROOM_ID, direction: dir });
+    if (socketRef.current) {
+      socketRef.current.emit('send-move', { roomId: ROOM_ID, direction: dir });
+    }
+  };
+
+  const rollDice = () => {
+    if (isRolling) return;
+    setIsRolling(true);
+    
+    // Simulate complex dice calculation
+    const result = Math.floor(Math.random() * 6) + 1; 
+    const randomX = Math.floor(Math.random() * 360) + 720;
+    const randomY = Math.floor(Math.random() * 360) + 720;
+
+    setDiceRotation({ x: randomX, y: randomY });
+    
+    setTimeout(() => {
+      setRollResult(result);
+      setIsRolling(false);
+      // Optional: emit roll value back to your DM engine here!
+    }, 1000);
   };
 
   // --- RENDER LOGIC ---
-
   if (view === 'loading') return <div className="loading">Summoning...</div>;
 
   if (view === 'character-creation') {
@@ -207,8 +205,7 @@ const PlayerZoom = ({ p }) => {
                 </div>
               </div>
 
-               
-               <div className="d-pad-isometric">
+              <div className="d-pad-isometric">
                   <button className="dir-btn up" onClick={() => sendMove('North')}>▲</button>
                   <button className="dir-btn right1" onClick={() => sendMove('East')}>▶</button>
                   <button className="dir-btn left1" onClick={() => sendMove('West')}>◀</button>
@@ -220,7 +217,7 @@ const PlayerZoom = ({ p }) => {
             </div>
           )}
           {activeTab === 'character' && (
-            <div  className="tab-panel fade-in">
+            <div className="tab-panel fade-in">
               <div className="hero-stat-card">
                 <span style={{fontSize: '4rem'}}>{selectedClass?.emoji}</span>
                 <h2>{charName}</h2>
@@ -229,25 +226,25 @@ const PlayerZoom = ({ p }) => {
             </div>
           )}
           
-        {activeTab === 'inventory' && (
-          <div className="tab-panel fade-in">
-            <h2 className="tab-title">Inventory</h2>
-            <div className="inv-grid">
-              <div className="inv-slot">🗡️</div>
-              <div className="inv-slot">🧪</div>
-              <div className="inv-slot">🕯️</div>
-              <div className="inv-slot empty"></div>
+          {activeTab === 'inventory' && (
+            <div className="tab-panel fade-in">
+              <h2 className="tab-title">Inventory</h2>
+              <div className="inv-grid">
+                <div className="inv-slot">🗡️</div>
+                <div className="inv-slot">🧪</div>
+                <div className="inv-slot">🕯️</div>
+                <div className="inv-slot empty"></div>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'tome' && (
-          <div className="tab-panel fade-in">
-            <h2 className="tab-title">The Tome</h2>
-            <div className="log-entry">You entered the Labyrinth.</div>
-            <div className="log-entry">The air feels cold...</div>
-          </div>
-        )}
+          {activeTab === 'tome' && (
+            <div className="tab-panel fade-in">
+              <h2 className="tab-title">The Tome</h2>
+              <div className="log-entry-dm">Latest Voice From Shadow:</div>
+              <div className="log-entry gold-text">"{dmText}"</div>
+            </div>
+          )}
         </main>
 
         <nav className="mobile-nav">
@@ -334,7 +331,6 @@ const PlayerZoom = ({ p }) => {
   if (view === 'desktop') {
     return (
       <div className="desktop-dashboard">
-        {/* SIDEBAR: Left Column (Minimap + Master) */}
         <aside className="sidebar">
           <div className="panel minimap-panel">
             <h3 className="panel-label">World Map</h3>
@@ -362,42 +358,40 @@ const PlayerZoom = ({ p }) => {
               <h3>Dungeon Master</h3>
             </div>
             <div className="dm-dialogue">
-             <p>"{dmText}"</p>
+              <p>"{dmText}"</p>
             </div>
           </div>
         </aside>
 
-        {/* MAIN STAGE: Right Column (Isometric Action) */}
-     <main className="main-stage">
-      <div className="game-screen-wrapper">
-        <div className="game-screen">
-          {/* The Camera handles the 3D perspective and the Zoom */}
-          <div className="maze-camera" style={{ transformOrigin: `${center.x}% ${center.y}%` }}>
-            <div className="maze-container">
-              <svg viewBox="0 0 324 324" className="maze-svg-walls">
-                <MazeGeometry />
-              </svg>
-              
-              {Object.entries(allPlayers).map(([id, p]) => (
-                <div 
-                  key={id} 
-                  className="player-avatar-3d" 
-                  style={{ 
-                    left: `${(p.x / 324) * 100}%`, 
-                    top: `${(p.y / 324) * 100}%`
-                  }}
-                >
-                  <div className="avatar-billboard">
-                    <div className="player-name-tag">{p.name}</div>
-                    <span className="emoji">{p.emoji}</span>
-                  </div>
+        <main className="main-stage">
+          <div className="game-screen-wrapper">
+            <div className="game-screen">
+              <div className="maze-camera" style={{ transformOrigin: `${center.x}% ${center.y}%` }}>
+                <div className="maze-container">
+                  <svg viewBox="0 0 324 324" className="maze-svg-walls">
+                    <MazeGeometry />
+                  </svg>
+                  
+                  {Object.entries(allPlayers).map(([id, p]) => (
+                    <div 
+                      key={id} 
+                      className="player-avatar-3d" 
+                      style={{ 
+                        left: `${(p.x / 324) * 100}%`, 
+                        top: `${(p.y / 324) * 100}%`
+                      }}
+                    >
+                      <div className="avatar-billboard">
+                        <div className="player-name-tag">{p.name}</div>
+                        <span className="emoji">{p.emoji}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    </main>
+        </main>
       </div>
     );
   }
@@ -405,10 +399,9 @@ const PlayerZoom = ({ p }) => {
   return null;
 }
 
-
 const MazeGeometry = () => (
-    <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
-       <line x1="2" y1="2" x2="146" y2="2" />
+  <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+    <line x1="2" y1="2" x2="146" y2="2" />
     <line x1="162" y1="2" x2="322" y2="2" />
     <line x1="34" y1="18" x2="50" y2="18" />
     <line x1="66" y1="18" x2="82" y2="18" />
@@ -606,6 +599,7 @@ const MazeGeometry = () => (
     <line x1="306" y1="162" x2="306" y2="178" />
     <line x1="306" y1="274" x2="306" y2="290" />
     <line x1="322" y1="2" x2="322" y2="322" />
-    </g>
+  </g>
 );
+
 export default App;
