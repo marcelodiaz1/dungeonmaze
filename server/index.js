@@ -25,21 +25,24 @@ const io = new Server(server, {
 const players = {}; 
 
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
-
-  // --- ROOM MANAGEMENT ---
+  
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
-    if (players[roomId]) {
-      socket.emit('update-players', players[roomId]);
+    
+    // Ensure room context is instantiated immediately
+    if (!players[roomId]) {
+      players[roomId] = { activePlayers: {} };
     }
+    
+    // Send current structural party back to whoever just connected
+    socket.emit('update-players', players[roomId].activePlayers);
   });
 
   socket.on('player-details', ({ roomId, name, classType, emoji }) => {
-    if (!players[roomId]) players[roomId] = {};
+    if (!players[roomId]) players[roomId] = { activePlayers: {} };
 
-    // Create or update the persistent reference safely
-    players[roomId][socket.id] = {
+    // Bind data to the active network socket connection
+    players[roomId].activePlayers[socket.id] = {
       x: 162,
       y: 162,
       name: name,
@@ -49,66 +52,28 @@ io.on('connection', (socket) => {
       maxHp: 10
     };
 
-    console.log(`Updated player ${socket.id} in room ${roomId}:`, players[roomId][socket.id]);
-    io.to(roomId).emit('update-players', players[roomId]);
+    console.log(`⚔️ Hero Manifested [${name}] in Room [${roomId}]`);
+    io.to(roomId).emit('update-players', players[roomId].activePlayers);
   });
 
-  socket.on('start-game', async (roomId) => {
-    try {
-      // 1. Ask AI to generate a dynamic quest hook
-      const questGen = await groq.chat.completions.create({
-        messages: [{ role: "user", content: "Generate a 1-sentence D&D quest hook for a dark maze." }],
-        model: "llama3-8b-8192",
-      });
+  socket.on('player-chat', async ({ roomId, message }) => {
+    console.log(`🔌 Voice Payload Received from Room: ${roomId}`);
 
-      const questHook = questGen.choices[0].message.content;
+    if (!players[roomId]) players[roomId] = { activePlayers: {} };
 
-      // 2. Broadcast the text layout out to room frontends
-      io.to(roomId).emit('dm-message', { 
-        sender: "SYSTEM", 
-        text: `📜 QUEST STARTED: ${questHook}` 
-      });
-
-      io.to(roomId).emit('game-started');
-    } catch (err) {
-      console.error("Error generating quest hook:", err.message);
-      io.to(roomId).emit('game-started');
-    }
-  });
-
-  // --- THE AI LOOP: Handle Transcribed Player Speech ---
- socket.on('player-chat', async ({ roomId, message }) => {
-    console.log(`🔌 [Incoming Chat] Room: ${roomId} | Message: "${message}"`);
-
-    // 1. SAFETY GUARD: If the room doesn't exist in memory yet, initialize it
-    if (!players[roomId]) {
-      players[roomId] = {};
-    }
-
-    // 2. SAFETY GUARD: Grab player details, or fall back to default safely
-    const player = players[roomId][socket.id] || {
-      name: "An unknown hero",
-      classType: "Adventurer"
+    // Fallback search: Find player profile context safely
+    const player = players[roomId].activePlayers[socket.id] || {
+      name: "A Mysterious Seeker",
+      classType: "Rogue"
     };
 
-    console.log(`🎭 Processing turn for: ${player.name} (${player.classType})`);
-
     const systemPrompt = `
-      You are the Dungeon Master of a cursed, shifting Labyrinth. 
-      CURRENT QUEST: "The Heart of the Minotaur." 
-      OBJECTIVE: Players must find the Obsidian Altar at the center to break the curse.
-      
-      RULES:
-      1. Be descriptive but keep responses under 60 words.
-      2. Use the player's name (${player.name}) and class (${player.classType}).
-      3. If they describe an action, tell them what they see or hear next.
-      4. Occasionally mention the narrow stone walls and the flickering torchlight.
-      5. Do not finish the quest for them; lead them to the next choice.
+      You are the Dungeon Master of a cursed Labyrinth.
+      Respond in under 50 words. Be atmospheric.
+      Current Hero acting: ${player.name} the ${player.classType}.
     `;
 
     try {
-      console.log("🧠 Sending request to Groq API...");
-      
       const chatCompletion = await groq.chat.completions.create({
         messages: [
           { role: "system", content: systemPrompt },
@@ -118,49 +83,29 @@ io.on('connection', (socket) => {
       });
 
       const dmText = chatCompletion.choices[0].message.content;
+      
+      // Force direct broadcast to all channels linked to this room signature
       io.to(roomId).emit('dm-message', { sender: "DM", text: dmText });
 
     } catch (error) {
-      // --- THE DIAGNOSTIC FIX ---
-      // Instead of hiding the error in a hidden log, we blast it to the screen!
-      const diagnosticErrorMessage = `⚠️ SERVER ERROR: ${error.message || "Unknown issue"}. (Check if GROQ_API_KEY is properly loaded)`;
-      
+      console.error("Groq Processing Failure:", error.message);
       io.to(roomId).emit('dm-message', { 
         sender: "DM", 
-        text: diagnosticErrorMessage 
+        text: `⚠️ Engine Error: ${error.message}` 
       });
     }
   });
-  // --- ENGINE: Isomorphic Map Translation ---
-  socket.on('send-move', ({ roomId, direction }) => {
-    if (!players[roomId] || !players[roomId][socket.id]) return;
-    
-    const player = players[roomId][socket.id];
-    const step = 8; 
-
-    if (direction === 'North') player.y -= step;
-    if (direction === 'South') player.y += step;
-    if (direction === 'West')  player.x -= step;
-    if (direction === 'East')  player.x += step;
-
-    io.to(roomId).emit('update-players', players[roomId]);
-  });
-
-  // --- LIFE CYCLE: Disconnect Cleanup ---
+  
+  // Update your disconnect loops to check the nested structure safely
   socket.on('disconnecting', () => {
     for (const roomId of socket.rooms) {
-      if (players[roomId] && players[roomId][socket.id]) {
-        delete players[roomId][socket.id];
-        io.to(roomId).emit('update-players', players[roomId]);
+      if (players[roomId] && players[roomId].activePlayers?.[socket.id]) {
+        delete players[roomId].activePlayers[socket.id];
+        io.to(roomId).emit('update-players', players[roomId].activePlayers);
       }
     }
   });
-
-  socket.on('disconnect', () => {
-    console.log('User disconnected cleanly:', socket.id);
-  });
 });
-
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`D&D Live Engine running on port ${PORT}`);
