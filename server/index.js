@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import OpenAI from "openai";
+import 'dotenv/config'; 
 
 // 1. Initialize Groq via OpenAI SDK Client compatibility
 const groq = new OpenAI({
@@ -76,10 +77,22 @@ io.on('connection', (socket) => {
   });
 
   // --- THE AI LOOP: Handle Transcribed Player Speech ---
-  socket.on('player-chat', async ({ roomId, message }) => {
-    // Graceful check if room or player structure is missing
-    const player = players[roomId]?.[socket.id];
-    
+ socket.on('player-chat', async ({ roomId, message }) => {
+    console.log(`🔌 [Incoming Chat] Room: ${roomId} | Message: "${message}"`);
+
+    // 1. SAFETY GUARD: If the room doesn't exist in memory yet, initialize it
+    if (!players[roomId]) {
+      players[roomId] = {};
+    }
+
+    // 2. SAFETY GUARD: Grab player details, or fall back to default safely
+    const player = players[roomId][socket.id] || {
+      name: "An unknown hero",
+      classType: "Adventurer"
+    };
+
+    console.log(`🎭 Processing turn for: ${player.name} (${player.classType})`);
+
     const systemPrompt = `
       You are the Dungeon Master of a cursed, shifting Labyrinth. 
       CURRENT QUEST: "The Heart of the Minotaur." 
@@ -87,13 +100,15 @@ io.on('connection', (socket) => {
       
       RULES:
       1. Be descriptive but keep responses under 60 words.
-      2. Use the player's name (${player?.name || 'Unknown Hero'}) and class (${player?.classType || 'Adventurer'}).
+      2. Use the player's name (${player.name}) and class (${player.classType}).
       3. If they describe an action, tell them what they see or hear next.
       4. Occasionally mention the narrow stone walls and the flickering torchlight.
       5. Do not finish the quest for them; lead them to the next choice.
     `;
 
     try {
+      console.log("🧠 Sending request to Groq API...");
+      
       const chatCompletion = await groq.chat.completions.create({
         messages: [
           { role: "system", content: systemPrompt },
@@ -103,16 +118,21 @@ io.on('connection', (socket) => {
       });
 
       const dmText = chatCompletion.choices[0].message.content;
+      console.log("✨ Groq responded successfully:", dmText);
+
+      // Broadcast out to ALL clients in the room (including the desktop view)
       io.to(roomId).emit('dm-message', { sender: "DM", text: dmText });
+
     } catch (error) {
-      console.error("Groq API Completion Error:", error.message);
+      // This will tell you exactly why Groq isn't being called (e.g., bad key, authentication error)
+      console.error("❌ CRITICAL GROQ API ERROR:", error.message);
+      
       io.to(roomId).emit('dm-message', { 
         sender: "DM", 
-        text: "The cavern rumbles violently, cutting off my sight for an instant..." 
+        text: "The stone walls crumble slightly, breaking my focus..." 
       });
     }
   });
-
   // --- ENGINE: Isomorphic Map Translation ---
   socket.on('send-move', ({ roomId, direction }) => {
     if (!players[roomId] || !players[roomId][socket.id]) return;
