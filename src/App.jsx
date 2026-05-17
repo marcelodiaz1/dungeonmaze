@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
-import './App.css';
-
+import './App.css'; 
 const SERVER_URL = "https://dungeonmaze.onrender.com"; 
-const ROOM_ID = "dnd-maze-1";
-
+const ROOM_ID = "dnd-maze-1"; 
 const CLASSES = [
   { id: 'barbarian', emoji: '🪓', color: '#e7623e' },
   { id: 'bard', emoji: '🪕', color: '#ab6dac' },
@@ -32,8 +30,35 @@ function App() {
   const [selectedClass, setSelectedClass] = useState(null);
   
   const socketRef = useRef();
+const [dmText, setDmText] = useState("The labyrinth awaits your first step...");
 
+useEffect(() => {
+  if (!socket) return;
+
+  socket.on('dm-message', (data) => {
+    // 1. Update the UI text
+    setDmText(data.text);
+
+    // 2. Make the DM speak
+    const speech = new SpeechSynthesisUtterance(data.text);
+    
+    // Customizing the "Evil DM" voice
+    speech.pitch = 0.5; // Deep voice
+    speech.rate = 0.9;  // Slightly slow and menacing
+    speech.volume = 1;
+    
+    // Optional: Pick a specific voice (like a narrator)
+    const voices = window.speechSynthesis.getVoices();
+    const narrator = voices.find(v => v.name.includes('Google UK English Male')) || voices[0];
+    speech.voice = narrator;
+
+    window.speechSynthesis.speak(speech);
+  });
+
+  return () => socket.off('dm-message');
+}, [socket]);
   useEffect(() => {
+    
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.location.pathname.includes('/join');
     
     socketRef.current = io(SERVER_URL, { transports: ['websocket'] });
@@ -93,7 +118,19 @@ function App() {
   const avgY = players.reduce((sum, p) => sum + (p.y / 324) * 100, 0) / players.length;
   return { x: avgX, y: avgY };
 };
+const handleVoiceCommand = () => {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return alert("Speech not supported");
 
+  const recognition = new SpeechRecognition();
+  recognition.start();
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    // Send what you said to the server
+    socket.emit('player-chat', { roomId, message: transcript });
+  };
+};
 const center = getPartyCenter();
 const PlayerZoom = ({ p }) => {
   if (!p) return <div className="empty-slot">Waiting for Seeker...</div>;
@@ -177,6 +214,9 @@ const PlayerZoom = ({ p }) => {
                   <button className="dir-btn left1" onClick={() => sendMove('West')}>◀</button>
                   <button className="dir-btn down" onClick={() => sendMove('South')}>▼</button>
               </div>
+              <button className="mic-btn" onClick={handleVoiceCommand}>
+                🎤 Speak to DM
+              </button>
             </div>
           )}
           {activeTab === 'character' && (
@@ -322,7 +362,7 @@ const PlayerZoom = ({ p }) => {
               <h3>Dungeon Master</h3>
             </div>
             <div className="dm-dialogue">
-              <p>"The labyrinth hungers for your choices. I see one of you is already straying from the light..."</p>
+             <p>"{dmText}"</p>
             </div>
           </div>
         </aside>

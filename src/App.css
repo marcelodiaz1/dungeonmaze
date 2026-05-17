@@ -622,7 +622,20 @@ body {
   /* Smooth transition when the camera origin shifts */
   transition: transform-origin 0.5s cubic-bezier(0.25, 1, 0.5, 1); 
 }
+/* App.css */
+.dm-dialogue p {
+  font-style: italic;
+  color: #d4af37;
+  line-height: 1.4;
+  animation: fadeInText 0.8s ease-in-out;
+  /* Ensure the text is readable in the zoomed-in map */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
 
+@keyframes fadeInText {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .maze-container {
   position: relative;
   width: 600px; /* Base size; the scale(2.5) makes it effectively 1500px */
