@@ -31,7 +31,7 @@ function App() {
   const [selectedClass, setSelectedClass] = useState(null);
   const [dmText, setDmText] = useState("The labyrinth awaits your first step...");
   const [isListening, setIsListening] = useState(false);
-  
+  const [lastSpokenText, setLastSpokenText] = useState("");
   const socketRef = useRef();
 
   // Helper inside component scope to find map bounds or default center
@@ -75,47 +75,35 @@ function App() {
     };
   }, []);
 
-  // --- EFFECT 2: Dungeon Master Voice Processing ---
-// --- Place this inside your App component ---
+  // --- EFFECT 2: Dungeon Master Voice Processing --- 
 useEffect(() => {
   const currentSocket = socketRef.current;
   if (!currentSocket) return;
 
   const handleDmMessage = (data) => {
-    // 1. Update your local state so the text displays visually on screens
+    console.log("🔴 FRONTEND RECEIVED DM TEXT:", data.text);
+    
+    // This updates the "{dmText}" variable inside your layout panel!
     setDmText(data.text); 
 
-    // 2. Clear any speech currently playing so it doesn't overlap
-    window.speechSynthesis.cancel();
-
-    // 3. Create the text-to-speech engine block
-    const utterance = new SpeechSynthesisUtterance(data.text);
-    
-    // Customize your Dungeon Master's voice settings
-    utterance.pitch = 0.65; // Deep, gravelly voice for a dark dungeon
-    utterance.rate = 0.95;  // Slightly slower pace for dramatic storytelling
-    utterance.volume = 1.0; // Max volume
-
-    // Optional: Lock down an English male narrator voice if available
-    const voices = window.speechSynthesis.getVoices();
-    const dmVoice = voices.find(v => v.name.includes('Google UK English Male') || v.lang.startsWith('en'));
-    if (dmVoice) {
-      utterance.voice = dmVoice;
+    // Handle vocal synthesis
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(data.text);
+      utterance.pitch = 0.7;
+      utterance.rate = 0.95;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.error("Audio playback error:", e);
     }
-
-    // Speak!
-    window.speechSynthesis.speak(utterance);
   };
 
-  // Turn on listener
   currentSocket.on('dm-message', handleDmMessage);
 
-  // Cleanup on unmount
   return () => {
     currentSocket.off('dm-message', handleDmMessage);
   };
-}, [view]); // Re-run if views shift to maintain active listeners
-
+}, []); // Keep dependencies clean so it stays alive for the lifecycle of the app
   // --- HANDLERS ---
   const handleJoinParty = () => {
     if (!charName || !selectedClass || !socketRef.current) return;
@@ -167,13 +155,13 @@ useEffect(() => {
 
   recognition.onresult = (event) => {
     const transcript = event.results[0][0].transcript;
-    console.log("Captured speech command:", transcript);
-
+    
+    // 1. Visually print it to the phone screen instantly
+    setLastSpokenText(transcript); 
+    
+    // 2. Push it down the pipe to the server
     if (socketRef.current) {
-      socketRef.current.emit('player-chat', { 
-        roomId: ROOM_ID, 
-        message: transcript 
-      });
+      socketRef.current.emit('player-chat', { roomId: ROOM_ID, message: transcript });
     }
   };
 
@@ -259,12 +247,19 @@ useEffect(() => {
                   <button className="dir-btn left1" onClick={() => sendMove('West')}>◀</button>
                   <button className="dir-btn down" onClick={() => sendMove('South')}>▼</button>
               </div>
-             <button 
-                className={`mic-btn ${isListening ? 'listening' : ''}`} 
-                onClick={handleVoiceCommand}
-              >
-                {isListening ? '🔮 Listening to soul...' : '🎤 Speak to DM'}
-              </button>
+            <div style={{ background: 'rgba(0,0,0,0.4)', padding: '10px', borderRadius: '8px', margin: '15px 0', fontSize: '0.85rem' }}>
+              <span style={{ color: '#d4af37' }}>🎙️ Captured Audio:</span>
+              <p style={{ italic: 'true', margin: '5px 0 0 0', color: lastSpokenText ? '#fff' : '#666' }}>
+                {lastSpokenText || "No voice data captured yet. Tap button to speak..."}
+              </p>
+            </div>
+
+            <button 
+              className={`mic-btn ${isListening ? 'listening' : ''}`} 
+              onClick={handleVoiceCommand}
+            >
+              {isListening ? '🔮 Listening to soul...' : '🎤 Speak to DM'}
+            </button>
             </div>
           )}
           {activeTab === 'character' && (
