@@ -118,18 +118,16 @@ io.on('connection', (socket) => {
       });
 
       const dmText = chatCompletion.choices[0].message.content;
-      console.log("✨ Groq responded successfully:", dmText);
-
-      // Broadcast out to ALL clients in the room (including the desktop view)
       io.to(roomId).emit('dm-message', { sender: "DM", text: dmText });
 
     } catch (error) {
-      // This will tell you exactly why Groq isn't being called (e.g., bad key, authentication error)
-      console.error("❌ CRITICAL GROQ API ERROR:", error.message);
+      // --- THE DIAGNOSTIC FIX ---
+      // Instead of hiding the error in a hidden log, we blast it to the screen!
+      const diagnosticErrorMessage = `⚠️ SERVER ERROR: ${error.message || "Unknown issue"}. (Check if GROQ_API_KEY is properly loaded)`;
       
       io.to(roomId).emit('dm-message', { 
         sender: "DM", 
-        text: "The stone walls crumble slightly, breaking my focus..." 
+        text: diagnosticErrorMessage 
       });
     }
   });
