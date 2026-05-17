@@ -735,6 +735,11 @@ body {
   font-weight: bold;
   white-space: nowrap;
 }
+.mic-btn.listening {
+  background: #992e2e !important;
+  box-shadow: 0 0 15px #ff4d4d;
+  animation: pulse 1.5s infinite;
+}
 .creation-screen {
   background: #050505;
   height: 100vh;

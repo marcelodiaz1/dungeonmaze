@@ -30,6 +30,7 @@ function App() {
   const [charName, setCharName] = useState('');
   const [selectedClass, setSelectedClass] = useState(null);
   const [dmText, setDmText] = useState("The labyrinth awaits your first step...");
+  const [isListening, setIsListening] = useState(false);
   
   const socketRef = useRef();
 
@@ -75,33 +76,45 @@ function App() {
   }, []);
 
   // --- EFFECT 2: Dungeon Master Voice Processing ---
-  useEffect(() => {
-    const currentSocket = socketRef.current;
-    if (!currentSocket) return;
+// --- Place this inside your App component ---
+useEffect(() => {
+  const currentSocket = socketRef.current;
+  if (!currentSocket) return;
 
-    const handleDmMessage = (data) => {
-      setDmText(data.text);
+  const handleDmMessage = (data) => {
+    // 1. Update your local state so the text displays visually on screens
+    setDmText(data.text); 
 
-      // Web Speech Synth integration
-      const speech = new SpeechSynthesisUtterance(data.text);
-      speech.pitch = 0.5; 
-      speech.rate = 0.9;  
-      speech.volume = 1;
-      
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        const narrator = voices.find(v => v.name.includes('Google UK English Male')) || voices[0];
-        speech.voice = narrator;
-      }
-      window.speechSynthesis.speak(speech);
-    };
+    // 2. Clear any speech currently playing so it doesn't overlap
+    window.speechSynthesis.cancel();
 
-    currentSocket.on('dm-message', handleDmMessage);
+    // 3. Create the text-to-speech engine block
+    const utterance = new SpeechSynthesisUtterance(data.text);
+    
+    // Customize your Dungeon Master's voice settings
+    utterance.pitch = 0.65; // Deep, gravelly voice for a dark dungeon
+    utterance.rate = 0.95;  // Slightly slower pace for dramatic storytelling
+    utterance.volume = 1.0; // Max volume
 
-    return () => {
-      currentSocket.off('dm-message', handleDmMessage);
-    };
-  }, [view]);
+    // Optional: Lock down an English male narrator voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const dmVoice = voices.find(v => v.name.includes('Google UK English Male') || v.lang.startsWith('en'));
+    if (dmVoice) {
+      utterance.voice = dmVoice;
+    }
+
+    // Speak!
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Turn on listener
+  currentSocket.on('dm-message', handleDmMessage);
+
+  // Cleanup on unmount
+  return () => {
+    currentSocket.off('dm-message', handleDmMessage);
+  };
+}, [view]); // Re-run if views shift to maintain active listeners
 
   // --- HANDLERS ---
   const handleJoinParty = () => {
@@ -118,20 +131,55 @@ function App() {
     setView('mobile'); 
   };
 
-  const handleVoiceCommand = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return alert("Speech recognition not supported in this browser environment.");
+ const handleVoiceCommand = () => {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert("Speech recognition is not supported in this browser. Please try Chrome or Safari.");
+    return;
+  }
 
-    const recognition = new SpeechRecognition();
-    recognition.start();
+  // Prevent spawning multiple overlapping recognition loops
+  if (isListening) return;
 
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      if (socketRef.current) {
-        socketRef.current.emit('player-chat', { roomId: ROOM_ID, message: transcript });
-      }
-    };
+  const recognition = new SpeechRecognition();
+  
+  // Configuration
+  recognition.lang = 'en-US'; 
+  recognition.interimResults = false; // Only send final text block
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    setIsListening(true);
   };
+
+  recognition.onerror = (event) => {
+    console.error("Speech Recognition Error:", event.error);
+    setIsListening(false);
+    
+    if (event.error === 'not-allowed') {
+      alert("Microphone access blocked. Please check your browser site permission configurations.");
+    }
+  };
+
+  recognition.onend = () => {
+    setIsListening(false);
+  };
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    console.log("Captured speech command:", transcript);
+
+    if (socketRef.current) {
+      socketRef.current.emit('player-chat', { 
+        roomId: ROOM_ID, 
+        message: transcript 
+      });
+    }
+  };
+
+  // Trigger browser audio capture window
+  recognition.start();
+};
 
   const sendMove = (dir) => {
     if (socketRef.current) {
@@ -211,8 +259,11 @@ function App() {
                   <button className="dir-btn left1" onClick={() => sendMove('West')}>◀</button>
                   <button className="dir-btn down" onClick={() => sendMove('South')}>▼</button>
               </div>
-              <button className="mic-btn" onClick={handleVoiceCommand}>
-                🎤 Speak to DM
+             <button 
+                className={`mic-btn ${isListening ? 'listening' : ''}`} 
+                onClick={handleVoiceCommand}
+              >
+                {isListening ? '🔮 Listening to soul...' : '🎤 Speak to DM'}
               </button>
             </div>
           )}
